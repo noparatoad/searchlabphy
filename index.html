@@ -3,107 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ตรวจสอบข้อมูลและสถิติการเรียน - ปฏิบัติการฟิสิกส์</title>
+  <title>ระบบตรวจสอบข้อมูลและสถิติการเรียน - ปฏิบัติการฟิสิกส์</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- QR Code Library (ทำงาน Offline บนเครื่องนักศึกษา) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Prompt', sans-serif; }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col text-slate-800">
+<body class="bg-slate-50 min-h-screen flex flex-col text-slate-800">
 
   <!-- Header -->
-  <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-4xl mx-auto px-4 py-4 sm:py-6 flex items-center justify-between">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Physics Laboratory Portal</h1>
-        <p class="text-indigo-200 text-xs sm:text-sm mt-0.5">ระบบตรวจสอบข้อมูลและสถิติการเรียนปฏิบัติการฟิสิกส์</p>
-      </div>
+  <header class="bg-indigo-700 text-white py-6 shadow-md">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h1 class="text-2xl md:text-3xl font-bold tracking-wide">ระบบสารสนเทศปฏิบัติการฟิสิกส์</h1>
+      <p class="text-indigo-200 mt-1 text-sm md:text-base">ตรวจสอบตารางเรียน ที่นั่งปฏิบัติการ และสถิติการเข้าชั้นเรียน</p>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-4xl w-full mx-auto px-4 py-6 sm:py-8 flex-grow">
+  <!-- Main Container -->
+  <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
     
-    <!-- Search Bar -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 mb-6">
-      <label for="stdIdInput" class="block text-sm font-semibold text-slate-700 mb-2">
-        รหัสนักศึกษา <span class="font-normal text-slate-400">(พิมพ์รหัสแล้วกด Enter ได้ทันที)</span>
-      </label>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="stdIdInput" placeholder="กรอกรหัสนักศึกษา เช่น 680911051" 
-               class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition text-base sm:text-lg"
+    <!-- Search Box -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+      <label for="stdIdInput" class="block text-sm font-medium text-slate-700 mb-2">กรอกรหัสนักศึกษา (กด Enter หรือปุ่มค้นหา)</label>
+      <div class="flex gap-2">
+        <input type="text" id="stdIdInput" placeholder="เช่น 66010001" 
+               class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-lg"
                onkeypress="if(event.key === 'Enter') searchStudent()">
-        <button onclick="searchStudent()" 
-                class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-medium px-8 py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <button onclick="searchStudent()" id="searchBtn"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition shadow-md whitespace-nowrap">
           ค้นหา
         </button>
       </div>
-      <p id="errorMsg" class="text-rose-600 text-sm mt-2.5 hidden font-medium"></p>
+      <!-- Loading & Error Indicators -->
+      <p id="statusMsg" class="text-indigo-600 text-sm mt-3 flex items-center gap-2">
+        <span class="inline-block animate-spin">⏳</span> กำลังเตรียมความพร้อมระบบฐานข้อมูล...
+      </p>
+      <p id="errorMsg" class="text-rose-500 text-sm mt-2 hidden font-medium"></p>
     </div>
 
-    <!-- Student Detail Zone -->
+    <!-- Student Info Dashboard -->
     <div id="contentArea" class="hidden space-y-6">
-
-      <!-- Student Profile Card -->
-      <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
-        <div class="border-b border-slate-100 pb-3 mb-4">
-          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">ข้อมูลประจำตัว</span>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-y-4 gap-x-3 text-sm">
+      
+      <!-- ข้อมูลประจำตัวนักศึกษา -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           <div>
             <p class="text-xs text-slate-400">รหัสนักศึกษา</p>
-            <p id="dispId" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+            <p id="dispId" class="font-bold text-slate-700 text-base md:text-lg">-</p>
           </div>
           <div class="col-span-2">
             <p class="text-xs text-slate-400">ชื่อ-นามสกุล</p>
-            <p id="dispName" class="font-bold text-slate-700 text-base mt-0.5 truncate">-</p>
+            <p id="dispName" class="font-semibold text-slate-700 text-base md:text-lg">-</p>
           </div>
           <div>
             <p class="text-xs text-slate-400">รหัสวิชา</p>
-            <p id="dispCourse" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+            <p id="dispCourse" class="font-semibold text-slate-700">-</p>
           </div>
           <div>
-            <p class="text-xs text-slate-400">วัน/กลุ่มเรียน</p>
-            <p id="dispGroup" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+            <p class="text-xs text-slate-400">กลุ่มเรียน / วัน</p>
+            <p id="dispGroup" class="font-semibold text-slate-700">-</p>
           </div>
           <div>
-            <p class="text-xs text-slate-400">โต๊ะที่นั่ง / กลุ่มย่อย</p>
-            <p id="dispSeat" class="font-bold text-indigo-600 text-base mt-0.5">-</p>
+            <p class="text-xs text-slate-400">โต๊ะที่นั่งประจำ</p>
+            <p id="dispSeat" class="font-bold text-indigo-600">-</p>
           </div>
         </div>
       </div>
 
-      <!-- Navigation Tabs (4 Sections) -->
-      <div class="flex border-b border-slate-200 overflow-x-auto no-scrollbar gap-2 sm:gap-4">
-        <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap transition">
-          1. ข้อมูลทั้งหมด
-        </button>
-        <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
-          2. ตรวจสอบเรียนวันนี้
-        </button>
-        <button onclick="switchTab(3)" id="tabBtn3" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
-          3. สถิติการเข้าเรียน
-        </button>
-        <button onclick="switchTab(4)" id="tabBtn4" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
-          4. QR Code สแกนเข้าเรียน
-        </button>
+      <!-- หมวดหมู่การแสดงผลทั้ง 4 ส่วน -->
+      <div class="flex border-b border-slate-200 overflow-x-auto gap-2">
+        <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. ข้อมูลทั้งหมด</button>
+        <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">2. เรียนวันนี้</button>
+        <button onclick="switchTab(3)" id="tabBtn3" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">3. สถิติการเข้าเรียน</button>
+        <button onclick="switchTab(4)" id="tabBtn4" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">4. QR Code สแกนเข้าเรียน</button>
       </div>
 
-      <!-- TAB 1: ตารางทั้งหมด -->
+      <!-- ส่วนที่ 1: ตารางแสดงข้อมูลทั้งหมด -->
       <div id="tabContent1" class="tab-pane">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
-              <thead class="bg-slate-50 border-b border-slate-100 text-slate-500">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
                 <tr>
-                  <th class="py-3 px-4 font-semibold">แล็บที่</th>
-                  <th class="py-3 px-4 font-semibold">ชื่อการทดลอง</th>
-                  <th class="py-3 px-4 font-semibold">วันที่กำหนดเรียน</th>
-                  <th class="py-3 px-4 font-semibold">เวลา</th>
-                  <th class="py-3 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
+                  <th class="py-3.5 px-4 font-semibold">แล็บที่</th>
+                  <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
+                  <th class="py-3.5 px-4 font-semibold">วันปฏิบัติการ</th>
+                  <th class="py-3.5 px-4 font-semibold">เวลาเรียน</th>
+                  <th class="py-3.5 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
                 </tr>
               </thead>
               <tbody id="allLabsTable" class="divide-y divide-slate-100"></tbody>
@@ -112,21 +102,21 @@
         </div>
       </div>
 
-      <!-- TAB 2: ตรวจสอบเรียนวันนี้ -->
+      <!-- ส่วนที่ 2: แสดงการทดลองวันนี้ -->
       <div id="tabContent2" class="tab-pane hidden">
-        <div id="todayContent" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80"></div>
+        <div id="todayContent" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"></div>
       </div>
 
-      <!-- TAB 3: สถิติการเข้าเรียน -->
+      <!-- ส่วนที่ 3: สถิติการเข้าเรียน -->
       <div id="tabContent3" class="tab-pane hidden">
-        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-6">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-              <p class="text-xs text-slate-400">สรุปความก้าวหน้าการเรียน</p>
-              <p id="attendanceSummary" class="text-2xl font-bold text-indigo-600 mt-0.5">0 / 0 แล็บ</p>
+              <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">สรุปผลการเข้าเรียน</p>
+              <p id="attendanceSummary" class="text-3xl font-bold text-indigo-600 mt-0.5">0 / 0 แล็บ</p>
             </div>
             <div>
-              <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+              <span class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
                 ⚠️ สถิติจะอัพเดททุกๆวันจันทร์ เวลา 12:00 น.
               </span>
             </div>
@@ -137,7 +127,7 @@
                 <tr>
                   <th class="py-2.5 font-medium">แล็บที่</th>
                   <th class="py-2.5 font-medium">ชื่อการทดลอง</th>
-                  <th class="py-2.5 text-right font-medium">เวลาที่เช็คชื่อเข้าเรียน</th>
+                  <th class="py-2.5 text-right font-medium">เวลาบันทึกเข้าเรียน</th>
                 </tr>
               </thead>
               <tbody id="attendanceTable" class="divide-y divide-slate-100"></tbody>
@@ -146,12 +136,12 @@
         </div>
       </div>
 
-      <!-- TAB 4: QR Code -->
+      <!-- ส่วนที่ 4: QR Code ประจำตัว -->
       <div id="tabContent4" class="tab-pane hidden">
-        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col items-center justify-center text-center">
-          <p class="text-slate-600 font-medium mb-4">แสดง QR Code นี้แก่เจ้าหน้าที่หรือเครื่องสแกนเพื่อเช็คชื่อเข้าเรียน</p>
-          <div id="qrcode" class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm"></div>
-          <p id="qrIdDisplay" class="mt-4 font-bold text-2xl text-slate-800 tracking-wider font-mono"></p>
+        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
+          <p class="text-slate-600 mb-4 font-medium">แสดง QR Code นี้กับเจ้าหน้าที่เพื่อสแกนบันทึกเวลาเข้าเรียน</p>
+          <div id="qrcode" class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm inline-block"></div>
+          <p id="qrIdDisplay" class="mt-4 font-bold text-2xl text-slate-800 tracking-wider"></p>
         </div>
       </div>
 
@@ -159,13 +149,11 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+  <footer class="bg-white border-t border-slate-200 py-6 mt-8">
     <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <p class="text-slate-600 text-sm text-center sm:text-left">
-        หากพบปัญหาแจ้งที่ Line Official LabPhysics
-      </p>
+      <p class="text-slate-600 text-sm text-center sm:text-left">หากพบปัญหาแจ้งที่ Line Official LabPhysics</p>
       <a href="https://lin.ee/Q5FokRl" target="_blank" rel="noopener noreferrer" 
-         class="inline-flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow hover:shadow-md">
+         class="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b34c] text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-sm">
         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M24 10.3c0-4.8-4.9-8.7-11-8.7S2 5.5 2 10.3c0 4.3 3.9 7.9 9.2 8.6.4.1.9.3 1 .7.1.4.1 1 0 1.4-.2.8-.7 3.1-.7 3.3 0 .4.3.7.8.4 2.8-1.7 7.7-4.6 10.4-7.9 1.5-1.8 2.3-3.9 2.3-6.1z"/>
         </svg>
@@ -175,24 +163,40 @@
   </footer>
 
   <script>
-    // *************************************************************
-    // ให้นำ Web App URL ที่ได้จาก Apps Script มาวางแทนที่ลิงก์ด้านล่าง
-    // *************************************************************
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9h_T06bx6KTu9M2wVdSeATCeug-pEhua_gs4btkttXzosBtOsXE4e-ZoXLTncjqDN/exec";
+    // ==========================================
+    // ใส่ URL ของ Google Apps Script ที่ Deploy ล่าสุดตรงนี้
+    // ==========================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQtne5VXEr-VI6-731JwnXwPE4Pgddbgajr3eSD0Dz6QtJdkD1MnjVCgP8I1n4_0uP/exec";
 
     let db = null;
     let currentStudent = null;
 
-    // ดาวน์โหลดข้อมูลลงหน่วยความจำของเบราว์เซอร์เพียงครั้งเดียว เพื่อรองรับ 500+ คนพร้อมกัน
-    async function loadData() {
+    async function initSystem() {
+      const statusEl = document.getElementById("statusMsg");
       try {
-        const res = await fetch(SCRIPT_URL);
+        const res = await fetch(SCRIPT_URL, {
+          method: "GET",
+          redirect: "follow"
+        });
+
+        if (!res.ok) throw new Error("HTTP Status: " + res.status);
+
         db = await res.json();
+
+        if (db.error) {
+          throw new Error(db.error);
+        }
+
+        statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
+        statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
       } catch (err) {
-        showError("เกิดข้อผิดพลาดในการโหลดฐานข้อมูล กรุณารีเฟรชหน้าใหม่อีกครั้ง");
+        console.error(err);
+        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
+        statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
       }
     }
-    loadData();
+
+    initSystem();
 
     function searchStudent() {
       const input = document.getElementById("stdIdInput").value.trim();
@@ -205,13 +209,13 @@
       }
 
       if (!db) {
-        showError("ระบบกำลังดาวน์โหลดฐานข้อมูล กรุณารอสักครู่แล้วกดค้นหาใหม่");
+        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
         return;
       }
 
       const student = db[input];
       if (!student) {
-        showError("ไม่พบข้อมูลสำหรับรหัสนักศึกษา: " + input);
+        showError("ไม่พบข้อมูลรหัสนักศึกษา " + input + " ในระบบ");
         document.getElementById("contentArea").classList.add("hidden");
         return;
       }
@@ -227,87 +231,83 @@
     }
 
     function renderStudentData() {
-      // 1. นำข้อมูลส่วนตัวมาแสดง
+      // แสดงข้อมูลส่วนตัว
       document.getElementById("dispId").textContent = currentStudent.id;
-      document.getElementById("dispName").textContent = currentStudent.name;
-      document.getElementById("dispCourse").textContent = currentStudent.course;
-      document.getElementById("dispGroup").textContent = currentStudent.regularDate;
-      document.getElementById("dispSeat").textContent = `โต๊ะ ${currentStudent.desk || "-"} (กลุ่ม ${currentStudent.group || "-"})`;
+      document.getElementById("dispName").textContent = currentStudent.name || "-";
+      document.getElementById("dispCourse").textContent = currentStudent.course || "-";
+      document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
+      document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-      // 2. เรนเดอร์แท็บ 1: ตารางทั้งหมด (เฉพาะที่มีวันและเวลา)
+      // แสดง Tab 1: รายการแล็บทั้งหมด
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
-      currentStudent.labs.forEach(lab => {
-        allLabsTbody.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="py-3 px-4 font-bold text-indigo-600">Lab ${lab.labNo}</td>
-            <td class="py-3 px-4 font-medium text-slate-700">${lab.labName}</td>
-            <td class="py-3 px-4 text-slate-500">${lab.date}</td>
-            <td class="py-3 px-4 text-slate-500">${lab.time}</td>
-            <td class="py-3 px-4 text-center font-bold text-indigo-700 bg-slate-50/50">${currentStudent.desk || "-"}</td>
-          </tr>`;
-      });
+      
+      if (currentStudent.labs.length === 0) {
+        allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
+      } else {
+        currentStudent.labs.forEach(lab => {
+          allLabsTbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-3 px-4 font-semibold text-indigo-600">Lab ${lab.labNo}</td>
+              <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
+              <td class="py-3 px-4 text-slate-600">${lab.date}</td>
+              <td class="py-3 px-4 text-slate-500">${lab.time}</td>
+              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
+            </tr>`;
+        });
+      }
 
-      // 3. เรนเดอร์แท็บ 2: วันนี้มีเรียนหรือไม่
-      renderTodaySection();
+      // แสดง Tab 2: ตรวจสอบแล็บวันนี้
+      renderToday();
 
-      // 4. เรนเดอร์แท็บ 3: สถิติการเข้าเรียน
-      renderAttendanceSection();
+      // แสดง Tab 3: สถิติการเข้าเรียน
+      renderAttendance();
 
-      // 5. เรนเดอร์แท็บ 4: QR Code
+      // แสดง Tab 4: QR Code
       renderQrCode();
 
       document.getElementById("contentArea").classList.remove("hidden");
-      switchTab(1); // เริ่มที่แท็บ 1 เสมอ
+      switchTab(1);
     }
 
-    function renderTodaySection() {
+    function renderToday() {
       const todayEl = document.getElementById("todayContent");
-      
-      // ดึงวันที่ปัจจุบันตามเครื่องผู้ใช้ รูปแบบ YYYY-MM-DD
       const now = new Date();
       const y = now.getFullYear();
       const m = ("0" + (now.getMonth() + 1)).slice(-2);
       const d = ("0" + now.getDate()).slice(-2);
       const todayStr = `${y}-${m}-${d}`;
 
-      // ค้นหาแล็บที่ตรงกับวันปัจจุบัน
       const todayLab = currentStudent.labs.find(lab => lab.date === todayStr);
 
       if (todayLab) {
         todayEl.innerHTML = `
-          <div class="border-l-4 border-emerald-500 pl-4 py-1">
-            <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold">มีเรียนปฏิบัติการในวันนี้</span>
+          <div class="border-l-4 border-emerald-500 pl-4 py-2">
+            <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold">มีการเรียนการสอนวันนี้</span>
             <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
-            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span class="text-xs text-slate-400 block">เวลาเรียน</span>
-                <span class="font-semibold text-slate-700 text-base">${todayLab.time} น.</span>
-              </div>
-              <div class="bg-indigo-50/60 p-3 rounded-xl border border-indigo-100">
-                <span class="text-xs text-indigo-500 block">โต๊ะที่นั่งและกลุ่มย่อย</span>
-                <span class="font-bold text-indigo-700 text-base">โต๊ะ ${currentStudent.desk} (กลุ่ม ${currentStudent.group})</span>
-              </div>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
+              <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${todayLab.time} น.</span></p>
+              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
             </div>
           </div>
         `;
       } else {
         todayEl.innerHTML = `
-          <div class="text-center py-10">
+          <div class="text-center py-8">
             <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 class="text-base font-bold text-slate-700">ไม่มีเรียน</h3>
-            <p class="text-slate-400 text-sm mt-1">ไม่มีรายวิชาปฏิบัติการที่ต้องทำในวันที่ ${todayStr}</p>
+            <h3 class="text-slate-700 font-semibold text-lg">วันนี้ไม่มีเรียน</h3>
+            <p class="text-slate-400 text-sm mt-1">ไม่มีกำหนดการปฏิบัติการในวันที่ ${todayStr}</p>
           </div>
         `;
       }
     }
 
-    function renderAttendanceSection() {
+    function renderAttendance() {
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
-
+      
       let attendedCount = 0;
       const totalLabs = currentStudent.labs.length;
 
@@ -317,18 +317,18 @@
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 transition">
-            <td class="py-3 font-bold text-slate-700">Lab ${lab.labNo}</td>
+            <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
             <td class="py-3 text-slate-600">${lab.labName}</td>
             <td class="py-3 text-right">
               ${isAttended 
-                ? `<span class="text-emerald-700 font-semibold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">เข้าเรียน: ${lab.checkIn}</span>` 
-                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่มีข้อมูลเช็คชื่อ</span>`}
+                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">เข้าเรียน: ${lab.checkIn}</span>` 
+                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
             </td>
           </tr>
         `;
       });
 
-      document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
+      document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} แล็บ`;
     }
 
     function renderQrCode() {
@@ -336,8 +336,8 @@
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
         text: currentStudent.id,
-        width: 180,
-        height: 180,
+        width: 190,
+        height: 190,
         colorDark : "#1e1b4b",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
@@ -349,12 +349,12 @@
       for (let i = 1; i <= 4; i++) {
         document.getElementById(`tabContent${i}`).classList.add("hidden");
         const btn = document.getElementById(`tabBtn${i}`);
-        btn.classList.remove("border-indigo-600", "text-indigo-600");
+        btn.classList.remove("border-indigo-600", "text-indigo-600", "font-semibold");
         btn.classList.add("border-transparent", "text-slate-500");
       }
       document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
       const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
-      activeBtn.classList.add("border-indigo-600", "text-indigo-600");
+      activeBtn.classList.add("border-indigo-600", "text-indigo-600", "font-semibold");
       activeBtn.classList.remove("border-transparent", "text-slate-500");
     }
   </script>
