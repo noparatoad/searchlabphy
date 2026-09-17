@@ -179,45 +179,19 @@
     </div>
   </footer>
 
-  <script>
-    // ==========================================
-    // ใส่ URL ของ Google Apps Script ที่ Deploy ล่าสุดตรงนี้
-    // ==========================================
+    <script>
+    // ** ใส่ URL ของคุณที่ได้จากการ Deploy Web App ของ Apps Script ที่นี่ **
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQtne5VXEr-VI6-731JwnXwPE4Pgddbgajr3eSD0Dz6QtJdkD1MnjVCgP8I1n4_0uP/exec";
-
-    let db = null;
+    
     let currentStudent = null;
 
-    async function initSystem() {
-      const statusEl = document.getElementById("statusMsg");
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
-
-        if (!res.ok) throw new Error("HTTP Status: " + res.status);
-
-        db = await res.json();
-
-        if (db.error) {
-          throw new Error(db.error);
-        }
-
-        statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
-        statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
-        statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
-      }
-    }
-
-    initSystem();
-
-    function searchStudent() {
+    // ฟังก์ชันค้นหาข้อมูล (จะทำงานเฉพาะตอนที่กดปุ่ม หรือ กด Enter)
+    async function searchStudent() {
       const input = document.getElementById("stdIdInput").value.trim();
       const errEl = document.getElementById("errorMsg");
+      const contentArea = document.getElementById("contentArea");
+      const searchBtn = document.querySelector("button[onclick='searchStudent()']");
+      
       errEl.classList.add("hidden");
 
       if (!input) {
@@ -225,20 +199,31 @@
         return;
       }
 
-      if (!db) {
-        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
-        return;
-      }
+      // เปลี่ยนปุ่มเป็น "กำลังค้นหา..." เพื่อให้นักศึกษารู้ว่าระบบกำลังทำงาน
+      searchBtn.disabled = true;
+      const originalText = searchBtn.textContent;
+      searchBtn.textContent = "กำลังค้นหา...";
 
-      const student = db[input];
-      if (!student) {
-        showError("ไม่พบข้อมูลรหัสนักศึกษา " + input + " ในระบบ");
-        document.getElementById("contentArea").classList.add("hidden");
-        return;
-      }
+      try {
+        // ดึงข้อมูลเฉพาะรหัสนักศึกษาคนนั้นๆ ทำให้โหลดเร็วมากใน 1-2 วินาที
+        const res = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(input)}`);
+        const data = await res.json();
 
-      currentStudent = student;
-      renderStudentData();
+        if (data.error === "not_found") {
+          showError("ไม่พบข้อมูลรหัสนักศึกษานี้ในระบบ");
+          contentArea.classList.add("hidden");
+        } else {
+          currentStudent = data;
+          renderStudentData();
+        }
+      } catch (err) {
+        showError("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+        contentArea.classList.add("hidden");
+      } finally {
+        // คืนค่าปุ่มค้นหากลับมาเป็นปกติ
+        searchBtn.disabled = false;
+        searchBtn.textContent = originalText;
+      }
     }
 
     function showError(msg) {
@@ -247,42 +232,38 @@
       errEl.classList.remove("hidden");
     }
 
+    // ฟังก์ชันนำข้อมูลที่ได้มาแสดงผลบนหน้าจอ
     function renderStudentData() {
-      // แสดงข้อมูลส่วนตัว
-      document.getElementById("dispId").textContent = currentStudent.id;
-      document.getElementById("dispName").textContent = currentStudent.name || "-";
-      document.getElementById("dispCourse").textContent = currentStudent.course || "-";
-      document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
-      document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
+      // 1. แสดงข้อมูลส่วนตัว
+      document.getElementById("dispId").textContent = currentStudent.studentId;
+      document.getElementById("dispName").textContent = currentStudent.name;
+      document.getElementById("dispCourse").textContent = currentStudent.courseCode;
+      document.getElementById("dispGroup").textContent = `${currentStudent.section} (${currentStudent.regularDay})`;
+      document.getElementById("dispSeat").textContent = currentStudent.defaultSeat || "-";
 
-      // แสดง Tab 1: รายการแล็บทั้งหมด
+      // 2. แสดงแท็บ 1: ข้อมูลทั้งหมด
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
-      
-      if (currentStudent.labs.length === 0) {
-        allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
-      } else {
-        currentStudent.labs.forEach(lab => {
-          allLabsTbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-3 px-4 font-semibold text-indigo-600">Lab ${lab.labNo}</td>
-              <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
-              <td class="py-3 px-4 text-slate-600">${lab.date}</td>
-              <td class="py-3 px-4 text-slate-500">${lab.time}</td>
-              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
-            </tr>`;
-        });
-      }
+      currentStudent.labs.forEach(lab => {
+        allLabsTbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 font-semibold text-indigo-600">Lab ${lab.labNo}</td>
+            <td class="py-3 px-4">${lab.labName}</td>
+            <td class="py-3 px-4 text-slate-500">${lab.date} <br class="sm:hidden"><span class="text-xs">(${lab.time})</span></td>
+            <td class="py-3 px-4 text-center font-medium text-slate-700">${lab.seat || "-"}</td>
+          </tr>`;
+      });
 
-      // แสดง Tab 2: ตรวจสอบแล็บวันนี้
+      // 3. แสดงแท็บ 2: เรียนวันนี้
       renderToday();
 
-      // แสดง Tab 3: สถิติการเข้าเรียน
+      // 4. แสดงแท็บ 3: สถิติการเข้าเรียน
       renderAttendance();
 
-      // แสดง Tab 4: QR Code
+      // 5. แสดงแท็บ 4: QR Code
       renderQrCode();
 
+      // เปิดแสดงผลกล่องเนื้อหาและเลือกไปที่แท็บ 1
       document.getElementById("contentArea").classList.remove("hidden");
       switchTab(1);
     }
@@ -299,12 +280,12 @@
 
       if (todayLab) {
         todayEl.innerHTML = `
-          <div class="border-l-4 border-emerald-500 pl-4 py-2">
-            <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold">มีการเรียนการสอนวันนี้</span>
+          <div class="border-l-4 border-indigo-600 pl-4 py-2">
+            <span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">มีการเรียนการสอนวันนี้</span>
             <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
-            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
-              <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${todayLab.time} น.</span></p>
-              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
+            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <p><span class="text-slate-400">เวลา:</span> <span class="font-medium text-slate-700">${todayLab.time}</span></p>
+              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${todayLab.seat || currentStudent.defaultSeat || "โปรดดูหน้าห้อง"}</span></p>
             </div>
           </div>
         `;
@@ -314,14 +295,14 @@
             <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h3 class="text-slate-700 font-semibold text-lg">วันนี้ไม่มีเรียน</h3>
-            <p class="text-slate-400 text-sm mt-1">ไม่มีกำหนดการปฏิบัติการในวันที่ ${todayStr}</p>
+            <h3 class="text-slate-600 font-medium">วันนี้ไม่มีเรียน</h3>
+            <p class="text-slate-400 text-sm mt-1">ไม่มีกำหนดการทำปฏิบัติการในวันที่ ${todayStr}</p>
           </div>
         `;
       }
     }
 
-        function renderAttendance() {
+    function renderAttendance() {
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
       
@@ -329,24 +310,17 @@
       const totalLabs = currentStudent.labs.length;
 
       currentStudent.labs.forEach(lab => {
-        const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-        let timeOnly = "";
-
-        if (isAttended) {
-          attendedCount++;
-          // ดึงเฉพาะตัวเลขเวลา HH:mm (ตัดวันที่และ Timezone ออกทั้งหมด)
-          const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
-          timeOnly = match ? match[0] + " น." : lab.checkIn;
-        }
+        const isAttended = lab.checkIn && lab.checkIn.trim() !== "";
+        if (isAttended) attendedCount++;
 
         tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
+          <tr class="hover:bg-slate-50">
             <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
-            <td class="py-3 text-slate-600">${lab.labName}</td>
+            <td class="py-3">${lab.labName}</td>
             <td class="py-3 text-right">
               ${isAttended 
-                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
-                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
+                ? `<span class="text-emerald-600 font-medium text-xs bg-emerald-50 px-2 py-1 rounded">${lab.checkIn}</span>` 
+                : `<span class="text-slate-400 text-xs bg-slate-100 px-2 py-1 rounded">ยังไม่เข้าเรียน</span>`}
             </td>
           </tr>
         `;
@@ -359,26 +333,26 @@
       const qrContainer = document.getElementById("qrcode");
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
-        text: currentStudent.id,
-        width: 190,
-        height: 190,
+        text: currentStudent.studentId,
+        width: 180,
+        height: 180,
         colorDark : "#1e1b4b",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
       });
-      document.getElementById("qrIdDisplay").textContent = currentStudent.id;
+      document.getElementById("qrIdDisplay").textContent = currentStudent.studentId;
     }
 
     function switchTab(tabIndex) {
       for (let i = 1; i <= 4; i++) {
         document.getElementById(`tabContent${i}`).classList.add("hidden");
         const btn = document.getElementById(`tabBtn${i}`);
-        btn.classList.remove("border-indigo-600", "text-indigo-600", "font-semibold");
+        btn.classList.remove("border-indigo-600", "text-indigo-600");
         btn.classList.add("border-transparent", "text-slate-500");
       }
       document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
       const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
-      activeBtn.classList.add("border-indigo-600", "text-indigo-600", "font-semibold");
+      activeBtn.classList.add("border-indigo-600", "text-indigo-600");
       activeBtn.classList.remove("border-transparent", "text-slate-500");
     }
   </script>
