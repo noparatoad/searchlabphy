@@ -19,7 +19,7 @@
   <header class="bg-indigo-700 text-white py-6 shadow-md">
     <div class="max-w-4xl mx-auto px-4 text-center">
       <h1 class="text-2xl md:text-3xl font-bold tracking-wide">ตรวจสอบการเข้าเรียนปฏิบัติการฟิสิกส์</h1>
-      <p class="text-indigo-200 mt-1 text-sm md:text-base">ตรวจสอบตารางเรียน ที่นั่งปฏิบัติการ และสถิติการเข้าชั้นเรียน</p>
+      <p class="text-indigo-200 mt-1 text-sm md:text-base">ตรวจสอบตารางเรียน สถิติการเข้าชั้นเรียน และ QR Code สแกนเข้าเรียน</p>
     </div>
   </header>
 
@@ -40,7 +40,7 @@
       </div>
       <!-- Loading & Error Indicators -->
       <p id="statusMsg" class="text-indigo-600 text-sm mt-3 flex items-center gap-2">
-        <span class="inline-block animate-spin">⏳</span> กำลังเตรียมความพร้อมระบบฐานข้อมูล...
+        <span class="inline-block animate-spin">⏳</span> กำลังเตรียมความพร้อมระบบฐานข้อมูล โปรดีอสักครู่...
       </p>
       <p id="errorMsg" class="text-rose-500 text-sm mt-2 hidden font-medium"></p>
     </div>
@@ -76,10 +76,10 @@
 
       <!-- หมวดหมู่การแสดงผลทั้ง 4 ส่วน -->
       <div class="flex border-b border-slate-200 overflow-x-auto gap-2">
-        <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. ข้อมูลทั้งหมด</button>
-        <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">2. เรียนวันนี้</button>
-        <button onclick="switchTab(3)" id="tabBtn3" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">3. สถิติการเข้าเรียน</button>
-        <button onclick="switchTab(4)" id="tabBtn4" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">4. QR Code สแกนเข้าเรียน</button>
+        <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1.ข้อมูลทั้งหมด</button>
+        <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">2.Labวันนี้</button>
+        <button onclick="switchTab(3)" id="tabBtn3" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">3.สถิติการเข้าเรียน</button>
+        <button onclick="switchTab(4)" id="tabBtn4" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">4.QR Code </button>
       </div>
 
       <!-- ส่วนที่ 1: ตารางแสดงข้อมูลทั้งหมด -->
@@ -89,9 +89,9 @@
             <table class="w-full text-left border-collapse text-sm">
               <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
                 <tr>
-                  <th class="py-3.5 px-4 font-semibold">แล็บที่</th>
+                  <th class="py-3.5 px-4 font-semibold">การทดลองที่</th>
                   <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
-                  <th class="py-3.5 px-4 font-semibold">วันปฏิบัติการ</th>
+                  <th class="py-3.5 px-4 font-semibold">วันเรียน(ปี-เดือน-วัน)</th>
                   <th class="py-3.5 px-4 font-semibold">เวลาเรียน</th>
                   <th class="py-3.5 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
                 </tr>
@@ -141,9 +141,9 @@
             <table class="w-full text-left text-sm">
               <thead class="text-slate-400 border-b border-slate-100">
                 <tr>
-                  <th class="py-2">แล็บที่</th>
+                  <th class="py-2">การทดลองที่</th>
                   <th class="py-2">ชื่อการทดลอง</th>
-                  <th class="py-2 text-right">เวลาเช็คชื่อ</th>
+                  <th class="py-2 text-right">เวลาเข้าเรียน</th>
                 </tr>
               </thead>
               <tbody id="attendanceTable" class="divide-y divide-slate-100"></tbody>
@@ -156,7 +156,7 @@
       <!-- ส่วนที่ 4: QR Code ประจำตัว -->
       <div id="tabContent4" class="tab-pane hidden">
         <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-          <p class="text-slate-600 mb-4 font-medium">แสดง QR Code นี้กับเจ้าหน้าที่เพื่อสแกนบันทึกเวลาเข้าเรียน</p>
+          <p class="text-slate-600 mb-4 font-medium">ใช้ QR Code นี้เพื่อสแกนบันทึกเวลาเข้าเรียน</p>
           <div id="qrcode" class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm inline-block"></div>
           <p id="qrIdDisplay" class="mt-4 font-bold text-2xl text-slate-800 tracking-wider"></p>
         </div>
