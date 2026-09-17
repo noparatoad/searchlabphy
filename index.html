@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตรวจสอบข้อมูลและสถิติการเรียน - ปฏิบัติการฟิสิกส์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col text-slate-800">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 sm:py-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Physics Laboratory Portal</h1>
+        <p class="text-indigo-200 text-xs sm:text-sm mt-0.5">ระบบตรวจสอบข้อมูลและสถิติการเรียนปฏิบัติการฟิสิกส์</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-4xl w-full mx-auto px-4 py-6 sm:py-8 flex-grow">
+    
+    <!-- Search Bar -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 mb-6">
+      <label for="stdIdInput" class="block text-sm font-semibold text-slate-700 mb-2">
+        รหัสนักศึกษา <span class="font-normal text-slate-400">(พิมพ์รหัสแล้วกด Enter ได้ทันที)</span>
+      </label>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <input type="text" id="stdIdInput" placeholder="กรอกรหัสนักศึกษา เช่น 680911051" 
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition text-base sm:text-lg"
+               onkeypress="if(event.key === 'Enter') searchStudent()">
+        <button onclick="searchStudent()" 
+                class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-medium px-8 py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          ค้นหา
+        </button>
+      </div>
+      <p id="errorMsg" class="text-rose-600 text-sm mt-2.5 hidden font-medium"></p>
+    </div>
+
+    <!-- Student Detail Zone -->
+    <div id="contentArea" class="hidden space-y-6">
+
+      <!-- Student Profile Card -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
+        <div class="border-b border-slate-100 pb-3 mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">ข้อมูลประจำตัว</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-y-4 gap-x-3 text-sm">
+          <div>
+            <p class="text-xs text-slate-400">รหัสนักศึกษา</p>
+            <p id="dispId" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-xs text-slate-400">ชื่อ-นามสกุล</p>
+            <p id="dispName" class="font-bold text-slate-700 text-base mt-0.5 truncate">-</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400">รหัสวิชา</p>
+            <p id="dispCourse" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400">วัน/กลุ่มเรียน</p>
+            <p id="dispGroup" class="font-bold text-slate-700 text-base mt-0.5">-</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400">โต๊ะที่นั่ง / กลุ่มย่อย</p>
+            <p id="dispSeat" class="font-bold text-indigo-600 text-base mt-0.5">-</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (4 Sections) -->
+      <div class="flex border-b border-slate-200 overflow-x-auto no-scrollbar gap-2 sm:gap-4">
+        <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap transition">
+          1. ข้อมูลทั้งหมด
+        </button>
+        <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
+          2. ตรวจสอบเรียนวันนี้
+        </button>
+        <button onclick="switchTab(3)" id="tabBtn3" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
+          3. สถิติการเข้าเรียน
+        </button>
+        <button onclick="switchTab(4)" id="tabBtn4" class="tab-btn py-3 px-3 sm:px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap transition">
+          4. QR Code สแกนเข้าเรียน
+        </button>
+      </div>
+
+      <!-- TAB 1: ตารางทั้งหมด -->
+      <div id="tabContent1" class="tab-pane">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead class="bg-slate-50 border-b border-slate-100 text-slate-500">
+                <tr>
+                  <th class="py-3 px-4 font-semibold">แล็บที่</th>
+                  <th class="py-3 px-4 font-semibold">ชื่อการทดลอง</th>
+                  <th class="py-3 px-4 font-semibold">วันที่กำหนดเรียน</th>
+                  <th class="py-3 px-4 font-semibold">เวลา</th>
+                  <th class="py-3 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
+                </tr>
+              </thead>
+              <tbody id="allLabsTable" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ตรวจสอบเรียนวันนี้ -->
+      <div id="tabContent2" class="tab-pane hidden">
+        <div id="todayContent" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80"></div>
+      </div>
+
+      <!-- TAB 3: สถิติการเข้าเรียน -->
+      <div id="tabContent3" class="tab-pane hidden">
+        <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <p class="text-xs text-slate-400">สรุปความก้าวหน้าการเรียน</p>
+              <p id="attendanceSummary" class="text-2xl font-bold text-indigo-600 mt-0.5">0 / 0 แล็บ</p>
+            </div>
+            <div>
+              <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                ⚠️ สถิติจะอัพเดททุกๆวันจันทร์ เวลา 12:00 น.
+              </span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th class="py-2.5 font-medium">แล็บที่</th>
+                  <th class="py-2.5 font-medium">ชื่อการทดลอง</th>
+                  <th class="py-2.5 text-right font-medium">เวลาที่เช็คชื่อเข้าเรียน</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceTable" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: QR Code -->
+      <div id="tabContent4" class="tab-pane hidden">
+        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 flex flex-col items-center justify-center text-center">
+          <p class="text-slate-600 font-medium mb-4">แสดง QR Code นี้แก่เจ้าหน้าที่หรือเครื่องสแกนเพื่อเช็คชื่อเข้าเรียน</p>
+          <div id="qrcode" class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm"></div>
+          <p id="qrIdDisplay" class="mt-4 font-bold text-2xl text-slate-800 tracking-wider font-mono"></p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+    <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-slate-600 text-sm text-center sm:text-left">
+        หากพบปัญหาแจ้งที่ Line Official LabPhysics
+      </p>
+      <a href="https://lin.ee/Q5FokRl" target="_blank" rel="noopener noreferrer" 
+         class="inline-flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow hover:shadow-md">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M24 10.3c0-4.8-4.9-8.7-11-8.7S2 5.5 2 10.3c0 4.3 3.9 7.9 9.2 8.6.4.1.9.3 1 .7.1.4.1 1 0 1.4-.2.8-.7 3.1-.7 3.3 0 .4.3.7.8.4 2.8-1.7 7.7-4.6 10.4-7.9 1.5-1.8 2.3-3.9 2.3-6.1z"/>
+        </svg>
+        เพิ่มเพื่อน LINE Official
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    // *************************************************************
+    // ให้นำ Web App URL ที่ได้จาก Apps Script มาวางแทนที่ลิงก์ด้านล่าง
+    // *************************************************************
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9h_T06bx6KTu9M2wVdSeATCeug-pEhua_gs4btkttXzosBtOsXE4e-ZoXLTncjqDN/exec";
+
+    let db = null;
+    let currentStudent = null;
+
+    // ดาวน์โหลดข้อมูลลงหน่วยความจำของเบราว์เซอร์เพียงครั้งเดียว เพื่อรองรับ 500+ คนพร้อมกัน
+    async function loadData() {
+      try {
+        const res = await fetch(SCRIPT_URL);
+        db = await res.json();
+      } catch (err) {
+        showError("เกิดข้อผิดพลาดในการโหลดฐานข้อมูล กรุณารีเฟรชหน้าใหม่อีกครั้ง");
+      }
+    }
+    loadData();
+
+    function searchStudent() {
+      const input = document.getElementById("stdIdInput").value.trim();
+      const errEl = document.getElementById("errorMsg");
+      errEl.classList.add("hidden");
+
+      if (!input) {
+        showError("กรุณากรอกรหัสนักศึกษา");
+        return;
+      }
+
+      if (!db) {
+        showError("ระบบกำลังดาวน์โหลดฐานข้อมูล กรุณารอสักครู่แล้วกดค้นหาใหม่");
+        return;
+      }
+
+      const student = db[input];
+      if (!student) {
+        showError("ไม่พบข้อมูลสำหรับรหัสนักศึกษา: " + input);
+        document.getElementById("contentArea").classList.add("hidden");
+        return;
+      }
+
+      currentStudent = student;
+      renderStudentData();
+    }
+
+    function showError(msg) {
+      const errEl = document.getElementById("errorMsg");
+      errEl.textContent = msg;
+      errEl.classList.remove("hidden");
+    }
+
+    function renderStudentData() {
+      // 1. นำข้อมูลส่วนตัวมาแสดง
+      document.getElementById("dispId").textContent = currentStudent.id;
+      document.getElementById("dispName").textContent = currentStudent.name;
+      document.getElementById("dispCourse").textContent = currentStudent.course;
+      document.getElementById("dispGroup").textContent = currentStudent.regularDate;
+      document.getElementById("dispSeat").textContent = `โต๊ะ ${currentStudent.desk || "-"} (กลุ่ม ${currentStudent.group || "-"})`;
+
+      // 2. เรนเดอร์แท็บ 1: ตารางทั้งหมด (เฉพาะที่มีวันและเวลา)
+      const allLabsTbody = document.getElementById("allLabsTable");
+      allLabsTbody.innerHTML = "";
+      currentStudent.labs.forEach(lab => {
+        allLabsTbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-bold text-indigo-600">Lab ${lab.labNo}</td>
+            <td class="py-3 px-4 font-medium text-slate-700">${lab.labName}</td>
+            <td class="py-3 px-4 text-slate-500">${lab.date}</td>
+            <td class="py-3 px-4 text-slate-500">${lab.time}</td>
+            <td class="py-3 px-4 text-center font-bold text-indigo-700 bg-slate-50/50">${currentStudent.desk || "-"}</td>
+          </tr>`;
+      });
+
+      // 3. เรนเดอร์แท็บ 2: วันนี้มีเรียนหรือไม่
+      renderTodaySection();
+
+      // 4. เรนเดอร์แท็บ 3: สถิติการเข้าเรียน
+      renderAttendanceSection();
+
+      // 5. เรนเดอร์แท็บ 4: QR Code
+      renderQrCode();
+
+      document.getElementById("contentArea").classList.remove("hidden");
+      switchTab(1); // เริ่มที่แท็บ 1 เสมอ
+    }
+
+    function renderTodaySection() {
+      const todayEl = document.getElementById("todayContent");
+      
+      // ดึงวันที่ปัจจุบันตามเครื่องผู้ใช้ รูปแบบ YYYY-MM-DD
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = ("0" + (now.getMonth() + 1)).slice(-2);
+      const d = ("0" + now.getDate()).slice(-2);
+      const todayStr = `${y}-${m}-${d}`;
+
+      // ค้นหาแล็บที่ตรงกับวันปัจจุบัน
+      const todayLab = currentStudent.labs.find(lab => lab.date === todayStr);
+
+      if (todayLab) {
+        todayEl.innerHTML = `
+          <div class="border-l-4 border-emerald-500 pl-4 py-1">
+            <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold">มีเรียนปฏิบัติการในวันนี้</span>
+            <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span class="text-xs text-slate-400 block">เวลาเรียน</span>
+                <span class="font-semibold text-slate-700 text-base">${todayLab.time} น.</span>
+              </div>
+              <div class="bg-indigo-50/60 p-3 rounded-xl border border-indigo-100">
+                <span class="text-xs text-indigo-500 block">โต๊ะที่นั่งและกลุ่มย่อย</span>
+                <span class="font-bold text-indigo-700 text-base">โต๊ะ ${currentStudent.desk} (กลุ่ม ${currentStudent.group})</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        todayEl.innerHTML = `
+          <div class="text-center py-10">
+            <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="text-base font-bold text-slate-700">ไม่มีเรียน</h3>
+            <p class="text-slate-400 text-sm mt-1">ไม่มีรายวิชาปฏิบัติการที่ต้องทำในวันที่ ${todayStr}</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderAttendanceSection() {
+      const tbody = document.getElementById("attendanceTable");
+      tbody.innerHTML = "";
+
+      let attendedCount = 0;
+      const totalLabs = currentStudent.labs.length;
+
+      currentStudent.labs.forEach(lab => {
+        const isAttended = lab.checkIn && lab.checkIn.trim() !== "";
+        if (isAttended) attendedCount++;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 font-bold text-slate-700">Lab ${lab.labNo}</td>
+            <td class="py-3 text-slate-600">${lab.labName}</td>
+            <td class="py-3 text-right">
+              ${isAttended 
+                ? `<span class="text-emerald-700 font-semibold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">เข้าเรียน: ${lab.checkIn}</span>` 
+                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่มีข้อมูลเช็คชื่อ</span>`}
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
+    }
+
+    function renderQrCode() {
+      const qrContainer = document.getElementById("qrcode");
+      qrContainer.innerHTML = "";
+      new QRCode(qrContainer, {
+        text: currentStudent.id,
+        width: 180,
+        height: 180,
+        colorDark : "#1e1b4b",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+      document.getElementById("qrIdDisplay").textContent = currentStudent.id;
+    }
+
+    function switchTab(tabIndex) {
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`tabContent${i}`).classList.add("hidden");
+        const btn = document.getElementById(`tabBtn${i}`);
+        btn.classList.remove("border-indigo-600", "text-indigo-600");
+        btn.classList.add("border-transparent", "text-slate-500");
+      }
+      document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
+      const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
+      activeBtn.classList.add("border-indigo-600", "text-indigo-600");
+      activeBtn.classList.remove("border-transparent", "text-slate-500");
+    }
+  </script>
+</body>
+</html>
