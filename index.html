@@ -179,66 +179,38 @@
     </div>
   </footer>
 
-    <script>
+  <script>
     // ==========================================
-    // นำ URL ที่ได้จากการ Deploy ข้อ 1 มาวางตรงนี้
+    // ใส่ URL ของ Google Apps Script ที่ Deploy ล่าสุดตรงนี้
     // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG_SZwyhaRSHQXbuv1zV_vCJc_wHWUAB5jNksoFPF3Ryfk-cLvIWB54ZIvjR685XMA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQtne5VXEr-VI6-731JwnXwPE4Pgddbgajr3eSD0Dz6QtJdkD1MnjVCgP8I1n4_0uP/exec";
 
     let db = null;
     let currentStudent = null;
 
     async function initSystem() {
       const statusEl = document.getElementById("statusMsg");
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "GET",
+          redirect: "follow"
+        });
 
-      // 1. ตรวจสอบข้อมูลในเครื่องก่อน (ถ้ามี โหลดขึ้นทันทีใน 0 วินาที)
-      const localCached = localStorage.getItem("LAB_STUDENT_DB");
-      const localCachedTime = localStorage.getItem("LAB_STUDENT_TIME");
-      const isCacheValid = localCachedTime && (Date.now() - parseInt(localCachedTime) < 10 * 60 * 1000); // 10 นาที
+        if (!res.ok) throw new Error("HTTP Status: " + res.status);
 
-      if (localCached && isCacheValid) {
-        try {
-          db = JSON.parse(localCached);
-          statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
-          statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
-          return;
-        } catch(e) {}
-      }
+        db = await res.json();
 
-      // 2. ถ้ายังไม่มีแคช ให้ดาวน์โหลดผ่านเทคนิค JSONP ข้ามบล็อก CORS
-      fetchDatabase();
-    }
+        if (db.error) {
+          throw new Error(db.error);
+        }
 
-    function fetchDatabase() {
-      const statusEl = document.getElementById("statusMsg");
-      statusEl.textContent = "⏳ กำลังเชื่อมต่อฐานข้อมูล...";
-      statusEl.className = "text-amber-600 text-xs mt-2 font-medium";
-
-      // กำหนด Callback Function
-      window.handleDatabaseResponse = function(data) {
-        db = data;
-        try {
-          localStorage.setItem("LAB_STUDENT_DB", JSON.stringify(db));
-          localStorage.setItem("LAB_STUDENT_TIME", Date.now().toString());
-        } catch(e) {}
-        
         statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
         statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
-        
-        // ลบแท็ก script ออกหลังโหลดเสร็จ
-        const oldScript = document.getElementById("jsonpScript");
-        if (oldScript) oldScript.remove();
-      };
-
-      // ยิงผ่าน Script Tag (หมดปัญหาเรื่อง CORS ทันที)
-      const script = document.createElement("script");
-      script.id = "jsonpScript";
-      script.src = SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleDatabaseResponse&t=" + Date.now();
-      script.onerror = function() {
-        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาตรวจสอบสิทธิ์การเข้าถึง";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
         statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
-      };
-      document.body.appendChild(script);
+      }
     }
 
     initSystem();
@@ -254,7 +226,7 @@
       }
 
       if (!db) {
-        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาใหม่อีกครั้ง");
+        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
         return;
       }
 
@@ -287,7 +259,7 @@
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
       
-      if (!currentStudent.labs || currentStudent.labs.length === 0) {
+      if (currentStudent.labs.length === 0) {
         allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
       } else {
         currentStudent.labs.forEach(lab => {
@@ -297,7 +269,7 @@
               <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
               <td class="py-3 px-4 text-slate-600">${lab.date}</td>
               <td class="py-3 px-4 text-slate-500">${lab.time}</td>
-              <td class="py-3 px-4 text-center font-bold text-slate-700">${lab.seat || currentStudent.desk || "-"}</td>
+              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
             </tr>`;
         });
       }
@@ -323,7 +295,7 @@
       const d = ("0" + now.getDate()).slice(-2);
       const todayStr = `${y}-${m}-${d}`;
 
-      const todayLab = currentStudent.labs ? currentStudent.labs.find(lab => lab.date === todayStr) : null;
+      const todayLab = currentStudent.labs.find(lab => lab.date === todayStr);
 
       if (todayLab) {
         todayEl.innerHTML = `
@@ -332,7 +304,7 @@
             <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
               <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${todayLab.time} น.</span></p>
-              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${todayLab.seat || currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
+              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
             </div>
           </div>
         `;
@@ -349,37 +321,36 @@
       }
     }
 
-    function renderAttendance() {
+        function renderAttendance() {
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
       
       let attendedCount = 0;
-      const totalLabs = currentStudent.labs ? currentStudent.labs.length : 0;
+      const totalLabs = currentStudent.labs.length;
 
-      if (currentStudent.labs) {
-        currentStudent.labs.forEach(lab => {
-          const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-          let timeOnly = "";
+      currentStudent.labs.forEach(lab => {
+        const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
+        let timeOnly = "";
 
-          if (isAttended) {
-            attendedCount++;
-            const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
-            timeOnly = match ? match[0] + " น." : lab.checkIn;
-          }
+        if (isAttended) {
+          attendedCount++;
+          // ดึงเฉพาะตัวเลขเวลา HH:mm (ตัดวันที่และ Timezone ออกทั้งหมด)
+          const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
+          timeOnly = match ? match[0] + " น." : lab.checkIn;
+        }
 
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
-              <td class="py-3 text-slate-600">${lab.labName}</td>
-              <td class="py-3 text-right">
-                ${isAttended 
-                  ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
-                  : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
-              </td>
-            </tr>
-          `;
-        });
-      }
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
+            <td class="py-3 text-slate-600">${lab.labName}</td>
+            <td class="py-3 text-right">
+              ${isAttended 
+                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
+                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
+            </td>
+          </tr>
+        `;
+      });
 
       document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
     }
