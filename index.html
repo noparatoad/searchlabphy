@@ -91,7 +91,7 @@
                 <tr>
                   <th class="py-3.5 px-4 font-semibold">การทดลองที่</th>
                   <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
-                  <th class="py-3.5 px-4 font-semibold">วันเรียน (วัน/เดือน/ปี)</th>
+                  <th class="py-3.5 px-4 font-semibold">วันเรียน (ปี-เดือน-วัน)</th>
                   <th class="py-3.5 px-4 font-semibold">เวลาเรียน</th>
                   <th class="py-3.5 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
                 </tr>
@@ -116,6 +116,8 @@
             <div>
               <p class="text-sm text-slate-500">สรุปการเข้าเรียน</p>
               <p id="attendanceSummary" class="text-2xl font-bold text-indigo-600">0 / 0 การทดลอง</p>
+              <!-- กล่องแสดงสถานะการขาดเรียน/ชมเชย -->
+              <div id="statusAlertBox" class="mt-2"></div>
             </div>
             
             <div class="flex flex-col items-start sm:items-end gap-1.5">
@@ -139,7 +141,7 @@
                 <tr>
                   <th class="py-2">การทดลองที่</th>
                   <th class="py-2">ชื่อการทดลอง</th>
-                  <th class="py-2 text-right">เวลาเข้าเรียน</th>
+                  <th class="py-2 text-right">สถานะ / เวลาเข้าเรียน</th>
                 </tr>
               </thead>
               <tbody id="attendanceTable" class="divide-y divide-slate-100"></tbody>
@@ -181,41 +183,54 @@
     let db = null;
     let currentStudent = null;
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแปลงเป็น วัน/เดือน/ปี (dd/mm/yyyy) ---
-    function formatDateDisplay(dateVal) {
+    // แสดงเฉพาะ ปี-เดือน-วัน (YYYY-MM-DD)
+    function formatDateOnly(dateVal) {
       if (!dateVal) return "-";
+      const match = String(dateVal).match(/\d{4}-\d{2}-\d{2}/);
+      if (match) return match[0];
       const d = new Date(dateVal);
-      if (isNaN(d.getTime())) {
-        // กรณีไม่ใช่ Date Object แต่เป็นสตริง เช่น 2023-10-25
-        const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (match) return `${match[3]}/${match[2]}/${match[1]}`;
-        return dateVal;
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = ("0" + (d.getMonth() + 1)).slice(-2);
+        const day = ("0" + d.getDate()).slice(-2);
+        return `${y}-${m}-${day}`;
       }
-      const day = ("0" + d.getDate()).slice(-2);
-      const month = ("0" + (d.getMonth() + 1)).slice(-2);
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+      return dateVal;
     }
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแสดงเฉพาะเวลา (HH:mm) ---
-    function formatTimeDisplay(timeVal) {
+    // แสดงเฉพาะ เวลา (HH:mm น.)
+    function formatTimeOnly(timeVal) {
       if (!timeVal) return "-";
       const match = String(timeVal).match(/\d{1,2}:\d{2}/);
       return match ? match[0] + " น." : timeVal;
     }
 
-    // ฟังก์ชันแปลงเป็น YYYY-MM-DD เพื่อใช้เทียบกับวันปัจจุบัน
-    function toStandardYMD(dateVal) {
-      if (!dateVal) return "";
-      const d = new Date(dateVal);
-      if (isNaN(d.getTime())) {
-        const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        return match ? match[0] : String(dateVal);
+    // ตรวจสอบว่าพ้นวันและเวลาเรียนมาแล้วหรือยัง
+    function isLabPassed(dateStr, timeStr) {
+      if (!dateStr) return false;
+      const dMatch = String(dateStr).match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (!dMatch) return false;
+
+      let hour = 23;
+      let minute = 59;
+      if (timeStr) {
+        const tMatch = String(timeStr).match(/(\d{1,2}):(\d{2})/);
+        if (tMatch) {
+          hour = parseInt(tMatch[1], 10);
+          minute = parseInt(tMatch[2], 10);
+        }
       }
-      const year = d.getFullYear();
-      const month = ("0" + (d.getMonth() + 1)).slice(-2);
-      const day = ("0" + d.getDate()).slice(-2);
-      return `${year}-${month}-${day}`;
+
+      const labDateTime = new Date(
+        parseInt(dMatch[1], 10),
+        parseInt(dMatch[2], 10) - 1,
+        parseInt(dMatch[3], 10),
+        hour,
+        minute,
+        0
+      );
+
+      return new Date() > labDateTime;
     }
 
     async function initSystem() {
@@ -278,14 +293,14 @@
     }
 
     function renderStudentData() {
-      // แสดงข้อมูลส่วนตัว
+      // ข้อมูลประจำตัว
       document.getElementById("dispId").textContent = currentStudent.id;
       document.getElementById("dispName").textContent = currentStudent.name || "-";
       document.getElementById("dispCourse").textContent = currentStudent.course || "-";
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-      // แสดง Tab 1: รายการแล็บทั้งหมด (ตัด Timezone ออก และแปลงเป็น วัน/เดือน/ปี)
+      // Tab 1: รายการแล็บทั้งหมด
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
       
@@ -297,20 +312,20 @@
             <tr class="hover:bg-slate-50 transition">
               <td class="py-3 px-4 font-semibold text-indigo-600">Lab ${lab.labNo}</td>
               <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
-              <td class="py-3 px-4 text-slate-600">${formatDateDisplay(lab.date)}</td>
-              <td class="py-3 px-4 text-slate-500">${formatTimeDisplay(lab.time)}</td>
+              <td class="py-3 px-4 text-slate-600">${formatDateOnly(lab.date)}</td>
+              <td class="py-3 px-4 text-slate-500">${formatTimeOnly(lab.time)}</td>
               <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
             </tr>`;
         });
       }
 
-      // แสดง Tab 2: ตรวจสอบแล็บวันนี้
+      // Tab 2: ตรวจสอบแล็บวันนี้
       renderToday();
 
-      // แสดง Tab 3: สถิติการเข้าเรียน
+      // Tab 3: สถิติการเข้าเรียน
       renderAttendance();
 
-      // แสดง Tab 4: QR Code
+      // Tab 4: QR Code
       renderQrCode();
 
       document.getElementById("contentArea").classList.remove("hidden");
@@ -324,10 +339,8 @@
       const m = ("0" + (now.getMonth() + 1)).slice(-2);
       const d = ("0" + now.getDate()).slice(-2);
       const todayStr = `${y}-${m}-${d}`;
-      const todayDisplayStr = `${d}/${m}/${y}`;
 
-      // ใช้ toStandardYMD เพื่อเปรียบเทียบวันได้อย่างแม่นยำ
-      const todayLab = currentStudent.labs.find(lab => toStandardYMD(lab.date) === todayStr);
+      const todayLab = currentStudent.labs.find(lab => formatDateOnly(lab.date) === todayStr);
 
       if (todayLab) {
         todayEl.innerHTML = `
@@ -335,7 +348,7 @@
             <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold">มีการเรียนการสอนวันนี้</span>
             <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
-              <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${formatTimeDisplay(todayLab.time)}</span></p>
+              <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${formatTimeOnly(todayLab.time)}</span></p>
               <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
             </div>
           </div>
@@ -347,42 +360,78 @@
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <h3 class="text-slate-700 font-semibold text-lg">วันนี้ไม่มีเรียน</h3>
-            <p class="text-slate-400 text-sm mt-1">ไม่มีกำหนดการปฏิบัติการในวันที่ ${todayDisplayStr}</p>
+            <p class="text-slate-400 text-sm mt-1">ไม่มีกำหนดการปฏิบัติการในวันที่ ${todayStr}</p>
           </div>
         `;
       }
     }
 
+    // ฟังก์ชันแสดงผลส่วนที่ 3 (สถิติการเข้าเรียนและข้อความสรุป)
     function renderAttendance() {
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
       
       let attendedCount = 0;
+      let absentCount = 0;
       const totalLabs = currentStudent.labs.length;
 
       currentStudent.labs.forEach(lab => {
         const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-        let timeOnly = "";
+        let statusBadge = "";
 
         if (isAttended) {
           attendedCount++;
-          timeOnly = formatTimeDisplay(lab.checkIn);
+          const timeOnly = formatTimeOnly(lab.checkIn);
+          statusBadge = `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>`;
+        } else {
+          // ตรวจสอบว่าถึงหรือเลยกำหนดการเรียนแล้วหรือไม่
+          const passed = isLabPassed(lab.date, lab.time);
+          if (passed) {
+            absentCount++;
+            statusBadge = `<span class="text-rose-700 font-semibold text-xs bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md">ขาดเรียน</span>`;
+          } else {
+            statusBadge = `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่ถึงเวลาเรียน</span>`;
+          }
         }
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 transition">
             <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
             <td class="py-3 text-slate-600">${lab.labName}</td>
-            <td class="py-3 text-right">
-              ${isAttended 
-                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
-                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
-            </td>
+            <td class="py-3 text-right">${statusBadge}</td>
           </tr>
         `;
       });
 
+      // อัปเดตตัวเลขจำนวนรวม
       document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
+
+      // แสดงกล่องสรุปสถานะการขาดเรียน/คำชม
+      const alertBox = document.getElementById("statusAlertBox");
+      if (absentCount > 2) {
+        alertBox.innerHTML = `
+          <div class="p-3 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-700 mt-2">
+            <div class="font-bold text-sm sm:text-base flex items-center gap-1.5">
+              <span>⚠️</span> ขาดเรียนไปแล้ว ${absentCount} การทดลอง
+            </div>
+            <div class="text-xs sm:text-sm font-extrabold mt-0.5 text-rose-800 tracking-wide underline decoration-rose-500">
+              "หมดสิทธิ์สอบปลายภาค"
+            </div>
+          </div>
+        `;
+      } else if (absentCount > 0) {
+        alertBox.innerHTML = `
+          <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-800 mt-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+            <span>⚠️</span> ขาดเรียนไปแล้ว ${absentCount} การทดลอง (ระวัง: ขาดเกิน 2 ครั้งจะหมดสิทธิ์สอบ)
+          </div>
+        `;
+      } else {
+        alertBox.innerHTML = `
+          <div class="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 mt-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+            <span>👏</span> ยอดเยี่ยมมาก! คุณเข้าเรียนครบทุกครั้ง
+          </div>
+        `;
+      }
     }
 
     function renderQrCode() {
