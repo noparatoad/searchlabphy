@@ -183,13 +183,29 @@
     // ==========================================
     // ใส่ URL ของ Google Apps Script ที่ Deploy ล่าสุดตรงนี้
     // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQtne5VXEr-VI6-731JwnXwPE4Pgddbgajr3eSD0Dz6QtJdkD1MnjVCgP8I1n4_0uP/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmL7UDa_pKzQEsmgAv77gKdQdvjClrnzKzogAOQvnpteCwiHqLx6lkzxcQlQz5YgZy/exec";
 
     let db = null;
     let currentStudent = null;
 
     async function initSystem() {
       const statusEl = document.getElementById("statusMsg");
+
+      // 1. ตรวจสอบข้อมูลในเครื่องก่อน (ถ้ามี โหลดขึ้นทันทีใน 0 วินาที!)
+      const localCached = localStorage.getItem("LAB_STUDENT_DB");
+      const localCachedTime = localStorage.getItem("LAB_STUDENT_TIME");
+      const isCacheValid = localCachedTime && (Date.now() - parseInt(localCachedTime) < 10 * 60 * 1000); // แคชไว้ 10 นาที
+
+      if (localCached && isCacheValid) {
+        try {
+          db = JSON.parse(localCached);
+          statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
+          statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
+          return;
+        } catch(e) {}
+      }
+
+      // 2. ถ้ายังไม่มีแคช ให้ดาวน์โหลดจาก Server
       try {
         const res = await fetch(SCRIPT_URL, {
           method: "GET",
@@ -203,6 +219,12 @@
         if (db.error) {
           throw new Error(db.error);
         }
+
+        // เซฟลงเครื่องผู้ใช้เพื่อเปิดครั้งต่อไปได้ทันที
+        try {
+          localStorage.setItem("LAB_STUDENT_DB", JSON.stringify(db));
+          localStorage.setItem("LAB_STUDENT_TIME", Date.now().toString());
+        } catch(e) {}
 
         statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
         statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
@@ -269,7 +291,7 @@
               <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
               <td class="py-3 px-4 text-slate-600">${lab.date}</td>
               <td class="py-3 px-4 text-slate-500">${lab.time}</td>
-              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
+              <td class="py-3 px-4 text-center font-bold text-slate-700">${lab.seat || currentStudent.desk || "-"}</td>
             </tr>`;
         });
       }
@@ -304,7 +326,7 @@
             <h3 class="text-xl font-bold text-slate-800 mt-2">Lab ${todayLab.labNo}: ${todayLab.labName}</h3>
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl">
               <p><span class="text-slate-400">เวลาเรียน:</span> <span class="font-semibold text-slate-700">${todayLab.time} น.</span></p>
-              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
+              <p><span class="text-slate-400">โต๊ะที่นั่ง:</span> <span class="font-bold text-indigo-600 text-lg">${todayLab.seat || currentStudent.desk || "ดูผังหน้าห้อง"}</span></p>
             </div>
           </div>
         `;
@@ -321,7 +343,7 @@
       }
     }
 
-        function renderAttendance() {
+    function renderAttendance() {
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
       
@@ -334,7 +356,6 @@
 
         if (isAttended) {
           attendedCount++;
-          // ดึงเฉพาะตัวเลขเวลา HH:mm (ตัดวันที่และ Timezone ออกทั้งหมด)
           const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
           timeOnly = match ? match[0] + " น." : lab.checkIn;
         }
