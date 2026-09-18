@@ -6,7 +6,7 @@
   <title>ระบบตรวจสอบข้อมูลและสถิติการเรียน - ปฏิบัติการฟิสิกส์</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- QR Code Library (ทำงาน Offline บนเครื่องนักศึกษา) -->
+  <!-- QR Code Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -28,21 +28,18 @@
     
     <!-- Search Box -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-      <label for="stdIdInput" class="block text-sm font-medium text-slate-700 mb-2">กรอกรหัสนักศึกษา (กด Enter หรือปุ่มค้นหา)</label>
+      <label for="stdIdInput" class="block text-sm font-medium text-slate-700 mb-2">กรอกรหัสนักศึกษา (กด Enter หรือคลิกปุ่มค้นหา)</label>
       <div class="flex gap-2">
         <input type="text" id="stdIdInput" placeholder="เช่น 66010001" 
                class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-lg"
                onkeypress="if(event.key === 'Enter') searchStudent()">
         <button onclick="searchStudent()" id="searchBtn"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition shadow-md whitespace-nowrap">
+                class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium px-6 py-3 rounded-xl transition shadow-md whitespace-nowrap">
           ค้นหา
         </button>
       </div>
-      <!-- Loading & Error Indicators -->
-      <p id="statusMsg" class="text-indigo-600 text-sm mt-3 flex items-center gap-2">
-        <span class="inline-block animate-spin">⏳</span> กำลังเตรียมความพร้อมระบบฐานข้อมูล...
-      </p>
-      <p id="errorMsg" class="text-rose-500 text-sm mt-2 hidden font-medium"></p>
+      <!-- Error Indicators -->
+      <p id="errorMsg" class="text-rose-500 text-sm mt-3 hidden font-medium flex items-center gap-1"></p>
     </div>
 
     <!-- Student Info Dashboard -->
@@ -111,7 +108,6 @@
       <div id="tabContent3" class="tab-pane hidden">
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
           
-          <!-- Header สถิติ และ ข้อความแจ้งเตือน -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-4">
             <div>
               <p class="text-sm text-slate-500">สรุปการเข้าเรียน</p>
@@ -132,7 +128,6 @@
             </div>
           </div>
 
-          <!-- ตารางสถิติการเข้าเรียน -->
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="text-slate-400 border-b border-slate-100">
@@ -176,99 +171,75 @@
   </footer>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTZ8LKsOFFIDUyeP2vmZlSjFJQMIrAozoTrWjtH0wu-GImSE3Vfdf-Ry15ciRmVwU/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznFSab87s2MAE-ENXkQFIzU3fcO3fuJ3jK108CyNYoldQU-n9PU7Mx5-jIq7KRnVdR/exec";
 
-    let db = null;
     let currentStudent = null;
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแปลงเป็น วัน/เดือน/ปี (dd/mm/yyyy) ---
+    // --- ฟังก์ชันจัดรูปแบบการแสดงผลวันที่ ---
     function formatDateDisplay(dateVal) {
       if (!dateVal) return "-";
-      const d = new Date(dateVal);
-      if (isNaN(d.getTime())) {
-        // กรณีไม่ใช่ Date Object แต่เป็นสตริง เช่น 2023-10-25
-        const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (match) return `${match[3]}/${match[2]}/${match[1]}`;
-        return dateVal;
-      }
-      const day = ("0" + d.getDate()).slice(-2);
-      const month = ("0" + (d.getMonth() + 1)).slice(-2);
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+      const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[3]}/${match[2]}/${match[1]}`;
+      return dateVal;
     }
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแสดงเฉพาะเวลา (HH:mm) ---
+    // --- ฟังก์ชันจัดรูปแบบเวลา ---
     function formatTimeDisplay(timeVal) {
       if (!timeVal) return "-";
       const match = String(timeVal).match(/\d{1,2}:\d{2}/);
       return match ? match[0] + " น." : timeVal;
     }
 
-    // ฟังก์ชันแปลงเป็น YYYY-MM-DD เพื่อใช้เทียบกับวันปัจจุบัน
+    // --- ฟังก์ชันแปลงเป็น YYYY-MM-DD ใช้เปรียบเทียบวัน ---
     function toStandardYMD(dateVal) {
       if (!dateVal) return "";
-      const d = new Date(dateVal);
-      if (isNaN(d.getTime())) {
-        const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
-        return match ? match[0] : String(dateVal);
-      }
-      const year = d.getFullYear();
-      const month = ("0" + (d.getMonth() + 1)).slice(-2);
-      const day = ("0" + d.getDate()).slice(-2);
-      return `${year}-${month}-${day}`;
+      const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return match ? match[0] : String(dateVal);
     }
 
-    async function initSystem() {
-      const statusEl = document.getElementById("statusMsg");
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
-
-        if (!res.ok) throw new Error("HTTP Status: " + res.status);
-
-        db = await res.json();
-
-        if (db.error) {
-          throw new Error(db.error);
-        }
-
-        statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
-        statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
-        statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
-      }
-    }
-
-    initSystem();
-
-    function searchStudent() {
+    // --- ฟังก์ชันค้นหาข้อมูลนักศึกษา (เรียกใช้แบบ On-Demand) ---
+    async function searchStudent() {
       const input = document.getElementById("stdIdInput").value.trim();
       const errEl = document.getElementById("errorMsg");
+      const searchBtn = document.getElementById("searchBtn");
+      
       errEl.classList.add("hidden");
 
       if (!input) {
-        showError("กรุณากรอกรหัสนักศึกษา");
+        showError("⚠️ กรุณากรอกรหัสนักศึกษา");
         return;
       }
 
-      if (!db) {
-        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
-        return;
-      }
+      // แสดงสถานะกำลังค้นหาและ Disable ปุ่ม
+      searchBtn.disabled = true;
+      searchBtn.innerText = "กำลังค้นหา...";
+      document.getElementById("contentArea").classList.add("hidden");
 
-      const student = db[input];
-      if (!student) {
-        showError("ไม่พบข้อมูลรหัสนักศึกษา " + input + " ในระบบ");
-        document.getElementById("contentArea").classList.add("hidden");
-        return;
-      }
+      try {
+        const res = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(input)}`);
+        if (!res.ok) throw new Error("การเชื่อมต่อระบบขัดข้อง (HTTP " + res.status + ")");
 
-      currentStudent = student;
-      renderStudentData();
+        const result = await res.json();
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        if (result.notFound) {
+          showError(`❌ ไม่พบข้อมูลรหัสนักศึกษา "${input}" ในระบบ`);
+          return;
+        }
+
+        currentStudent = result.data;
+        renderStudentData();
+
+      } catch (err) {
+        console.error(err);
+        showError("❌ " + err.message);
+      } finally {
+        searchBtn.disabled = false;
+        searchBtn.innerText = "ค้นหา";
+      }
     }
 
     function showError(msg) {
@@ -285,11 +256,11 @@
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-      // แสดง Tab 1: รายการแล็บทั้งหมด (ตัด Timezone ออก และแปลงเป็น วัน/เดือน/ปี)
+      // แสดง Tab 1: รายการแล็บทั้งหมด
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
       
-      if (currentStudent.labs.length === 0) {
+      if (!currentStudent.labs || currentStudent.labs.length === 0) {
         allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
       } else {
         currentStudent.labs.forEach(lab => {
@@ -304,13 +275,9 @@
         });
       }
 
-      // แสดง Tab 2: ตรวจสอบแล็บวันนี้
+      // แสดงส่วนอื่นๆ
       renderToday();
-
-      // แสดง Tab 3: สถิติการเข้าเรียน
       renderAttendance();
-
-      // แสดง Tab 4: QR Code
       renderQrCode();
 
       document.getElementById("contentArea").classList.remove("hidden");
@@ -326,8 +293,7 @@
       const todayStr = `${y}-${m}-${d}`;
       const todayDisplayStr = `${d}/${m}/${y}`;
 
-      // ใช้ toStandardYMD เพื่อเปรียบเทียบวันได้อย่างแม่นยำ
-      const todayLab = currentStudent.labs.find(lab => toStandardYMD(lab.date) === todayStr);
+      const todayLab = currentStudent.labs ? currentStudent.labs.find(lab => toStandardYMD(lab.date) === todayStr) : null;
 
       if (todayLab) {
         todayEl.innerHTML = `
@@ -358,9 +324,10 @@
       tbody.innerHTML = "";
       
       let attendedCount = 0;
-      const totalLabs = currentStudent.labs.length;
+      const labs = currentStudent.labs || [];
+      const totalLabs = labs.length;
 
-      currentStudent.labs.forEach(lab => {
+      labs.forEach(lab => {
         const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
         let timeOnly = "";
 
