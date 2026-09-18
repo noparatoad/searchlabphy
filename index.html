@@ -179,11 +179,11 @@
     </div>
   </footer>
 
-  <script>
+    <script>
     // ==========================================
-    // ใส่ URL ของ Google Apps Script ที่ Deploy ล่าสุดตรงนี้
+    // นำ URL ที่ได้จากการ Deploy ข้อ 1 มาวางตรงนี้
     // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmL7UDa_pKzQEsmgAv77gKdQdvjClrnzKzogAOQvnpteCwiHqLx6lkzxcQlQz5YgZy/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQtne5VXEr-VI6-731JwnXwPE4Pgddbgajr3eSD0Dz6QtJdkD1MnjVCgP8I1n4_0uP/exec";
 
     let db = null;
     let currentStudent = null;
@@ -191,10 +191,10 @@
     async function initSystem() {
       const statusEl = document.getElementById("statusMsg");
 
-      // 1. ตรวจสอบข้อมูลในเครื่องก่อน (ถ้ามี โหลดขึ้นทันทีใน 0 วินาที!)
+      // 1. ตรวจสอบข้อมูลในเครื่องก่อน (ถ้ามี โหลดขึ้นทันทีใน 0 วินาที)
       const localCached = localStorage.getItem("LAB_STUDENT_DB");
       const localCachedTime = localStorage.getItem("LAB_STUDENT_TIME");
-      const isCacheValid = localCachedTime && (Date.now() - parseInt(localCachedTime) < 10 * 60 * 1000); // แคชไว้ 10 นาที
+      const isCacheValid = localCachedTime && (Date.now() - parseInt(localCachedTime) < 10 * 60 * 1000); // 10 นาที
 
       if (localCached && isCacheValid) {
         try {
@@ -205,34 +205,40 @@
         } catch(e) {}
       }
 
-      // 2. ถ้ายังไม่มีแคช ให้ดาวน์โหลดจาก Server
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
+      // 2. ถ้ายังไม่มีแคช ให้ดาวน์โหลดผ่านเทคนิค JSONP ข้ามบล็อก CORS
+      fetchDatabase();
+    }
 
-        if (!res.ok) throw new Error("HTTP Status: " + res.status);
+    function fetchDatabase() {
+      const statusEl = document.getElementById("statusMsg");
+      statusEl.textContent = "⏳ กำลังเชื่อมต่อฐานข้อมูล...";
+      statusEl.className = "text-amber-600 text-xs mt-2 font-medium";
 
-        db = await res.json();
-
-        if (db.error) {
-          throw new Error(db.error);
-        }
-
-        // เซฟลงเครื่องผู้ใช้เพื่อเปิดครั้งต่อไปได้ทันที
+      // กำหนด Callback Function
+      window.handleDatabaseResponse = function(data) {
+        db = data;
         try {
           localStorage.setItem("LAB_STUDENT_DB", JSON.stringify(db));
           localStorage.setItem("LAB_STUDENT_TIME", Date.now().toString());
         } catch(e) {}
-
+        
         statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
         statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
+        
+        // ลบแท็ก script ออกหลังโหลดเสร็จ
+        const oldScript = document.getElementById("jsonpScript");
+        if (oldScript) oldScript.remove();
+      };
+
+      // ยิงผ่าน Script Tag (หมดปัญหาเรื่อง CORS ทันที)
+      const script = document.createElement("script");
+      script.id = "jsonpScript";
+      script.src = SCRIPT_URL + (SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleDatabaseResponse&t=" + Date.now();
+      script.onerror = function() {
+        statusEl.textContent = "❌ ไม่สามารถโหลดฐานข้อมูลได้ กรุณาตรวจสอบสิทธิ์การเข้าถึง";
         statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
-      }
+      };
+      document.body.appendChild(script);
     }
 
     initSystem();
@@ -248,7 +254,7 @@
       }
 
       if (!db) {
-        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
+        showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาใหม่อีกครั้ง");
         return;
       }
 
@@ -281,7 +287,7 @@
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
       
-      if (currentStudent.labs.length === 0) {
+      if (!currentStudent.labs || currentStudent.labs.length === 0) {
         allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
       } else {
         currentStudent.labs.forEach(lab => {
@@ -317,7 +323,7 @@
       const d = ("0" + now.getDate()).slice(-2);
       const todayStr = `${y}-${m}-${d}`;
 
-      const todayLab = currentStudent.labs.find(lab => lab.date === todayStr);
+      const todayLab = currentStudent.labs ? currentStudent.labs.find(lab => lab.date === todayStr) : null;
 
       if (todayLab) {
         todayEl.innerHTML = `
@@ -348,30 +354,32 @@
       tbody.innerHTML = "";
       
       let attendedCount = 0;
-      const totalLabs = currentStudent.labs.length;
+      const totalLabs = currentStudent.labs ? currentStudent.labs.length : 0;
 
-      currentStudent.labs.forEach(lab => {
-        const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-        let timeOnly = "";
+      if (currentStudent.labs) {
+        currentStudent.labs.forEach(lab => {
+          const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
+          let timeOnly = "";
 
-        if (isAttended) {
-          attendedCount++;
-          const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
-          timeOnly = match ? match[0] + " น." : lab.checkIn;
-        }
+          if (isAttended) {
+            attendedCount++;
+            const match = String(lab.checkIn).match(/\d{1,2}:\d{2}/);
+            timeOnly = match ? match[0] + " น." : lab.checkIn;
+          }
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
-            <td class="py-3 text-slate-600">${lab.labName}</td>
-            <td class="py-3 text-right">
-              ${isAttended 
-                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
-                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
-            </td>
-          </tr>
-        `;
-      });
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
+              <td class="py-3 text-slate-600">${lab.labName}</td>
+              <td class="py-3 text-right">
+                ${isAttended 
+                  ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
+                  : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
+              </td>
+            </tr>
+          `;
+        });
+      }
 
       document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
     }
