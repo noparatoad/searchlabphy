@@ -195,14 +195,25 @@
 
        // เปลี่ยนฟังก์ชัน callApi ให้ใช้ text/plain เพื่อเลี่ยงปัญหา CORS บน GitHub
 async function callApi(payload) {
-    const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "text/plain;charset=utf-8" // สำคัญมาก: ป้องกันเบราว์เซอร์ติด CORS Preflight
-        },
-        body: JSON.stringify(payload)
-    });
-    return await response.json();
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            // ใช้ text/plain เพื่อป้องกัน Browser ส่ง CORS Preflight (OPTIONS request)
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+        }
+        
+        return await response.json();
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        throw err;
+    }
 }
 
         window.addEventListener('load', async function() {
