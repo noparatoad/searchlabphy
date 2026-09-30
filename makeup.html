@@ -193,14 +193,17 @@
         let adminToken = "";
         let rawAdminData = [];
 
-        // ยิงคำสั่งหา Google Apps Script API
-        async function callApi(payload) {
-            const response = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            return await response.json();
-        }
+       // เปลี่ยนฟังก์ชัน callApi ให้ใช้ text/plain เพื่อเลี่ยงปัญหา CORS บน GitHub
+async function callApi(payload) {
+    const response = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8" // สำคัญมาก: ป้องกันเบราว์เซอร์ติด CORS Preflight
+        },
+        body: JSON.stringify(payload)
+    });
+    return await response.json();
+}
 
         window.addEventListener('load', async function() {
             try {
