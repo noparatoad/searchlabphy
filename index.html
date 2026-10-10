@@ -182,51 +182,63 @@
       </div>
 
             <!-- ส่วนที่ 4: ป้ายชื่อและ QR Code (5.4 x 8.5 cm) -->
+            <!-- ส่วนที่ 4: ป้ายชื่อและ QR Code -->
       <div id="tabContent4" class="tab-pane hidden">
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col items-center">
           
-          <!-- ปุ่มบันทึกรูป -->
-          <button onclick="downloadBadge()" class="mb-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 px-5 rounded-xl transition shadow flex items-center gap-2">
-            📥 บันทึกรูปป้ายชื่อ (ขนาด 5.4 x 8.5 cm)
-          </button>
-
-          <!-- บัตรประจำตัวนักศึกษา -->
-                    <!-- บัตรประจำตัวนักศึกษา (ปรับปรุงเพื่อไม่ให้ข้อความโดนตัด) -->
-          <div id="badgeCard" style="width: 240px; min-height: 360px; box-sizing: border-box;" 
-               class="bg-white border border-slate-300 rounded-xl p-3 shadow-md flex flex-col justify-between items-center text-center bg-clip-border">
-            
-            <!-- ส่วนหัวการ์ด -->
-            <div class="w-full border-b border-indigo-100 pb-1 shrink-0">
-              <span class="text-[10px] font-bold text-indigo-700 tracking-wider block leading-none">PHYSICS LABORATORY</span>
-              <p class="text-[10px] text-slate-500 font-medium mt-0.5">บัตรประจำตัวสแกนเข้าเรียน</p>
-            </div>
-
-            <!-- ส่วน QR Code -->
-            <div class="my-2 flex flex-col items-center shrink-0">
-              <div id="qrcode" class="flex justify-center"></div>
-              <p id="qrIdDisplay" class="text-xs font-bold text-slate-800 tracking-wider mt-1 leading-tight">-</p>
-            </div>
-
-            <!-- ส่วนข้อมูลนักศึกษา (เอา truncate ออก และยอมให้ขึ้นบรรทัดใหม่ได้) -->
-            <div class="w-full bg-slate-50 rounded-lg p-2 text-left border border-slate-100 flex flex-col gap-0.5 shrink-0">
-              <p id="cardName" class="text-[11px] font-bold text-slate-800 leading-snug break-words">-</p>
-              
-              <div class="flex justify-between items-center text-[10px] text-slate-600 pt-0.5 border-t border-slate-200/60 mt-0.5">
-                <span>วิชา: <b id="cardCourse">-</b></span>
-                <span>โต๊ะ: <b id="cardSeat" class="text-indigo-600 font-bold text-[11px]">-</b></span>
-              </div>
-              
-              <p class="text-[9.5px] text-slate-500 leading-tight break-words mt-0.5">
-                กลุ่ม: <span id="cardGroup" class="text-slate-700 font-medium">-</span>
-              </p>
-            </div>
-
+          <!-- ข้อความแนะนำสำหรับมือถือ -->
+          <div class="text-center mb-4">
+            <span class="inline-block bg-indigo-50 text-indigo-700 text-xs px-3 py-1.5 rounded-full font-semibold mb-1">
+              📱 บนมือถือ: แตะที่รูปค้างไว้ เพื่อ "บันทึกรูปภาพ"
+            </span>
+            <p class="text-xs text-slate-400">หรือกดปุ่มดาวน์โหลดด้านล่างนี้</p>
           </div>
 
-          <p class="text-xs text-slate-400 mt-4 text-center">* รูปภาพที่ดาวน์โหลดมีสัดส่วนมาตรฐาน 5.4 x 8.5 ซม. คมชัดสูงสำหรับปริ้นท์ใช้งาน</p>
+          <!-- ปุ่มสำรองสำหรับกดดาวน์โหลดตรงๆ -->
+          <button onclick="downloadBadge()" class="mb-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-5 rounded-xl transition shadow flex items-center gap-2">
+            📥 บันทึกรูปภาพลงเครื่อง
+          </button>
+
+          <!-- 1. รูปภาพจริงที่จะแสดงผล (รองรับการแตะค้างเพื่อบันทึก) -->
+          <div id="badgeImageContainer" class="flex flex-col items-center min-h-[360px] justify-center">
+            <div id="badgeLoading" class="text-sm text-slate-400 flex items-center gap-2">
+              <span class="animate-spin">⏳</span> กำลังสร้างรูปภาพบัตร...
+            </div>
+            <!-- แท็ก <img> นี้จะรับภาพจากการแปลงอัตโนมัติ -->
+            <img id="badgeImg" class="rounded-xl shadow-md border border-slate-200 hidden max-w-[240px] select-none" alt="บัตรประจำตัวนักศึกษา">
+          </div>
+
+          <!-- 2. กล่องต้นฉบับ (ซ่อนไว้ใช้อ้างอิงตอนแปลงเป็นรูปเท่านั้น) -->
+          <div style="position: absolute; left: -9999px; top: -9999px;">
+            <div id="badgeCard" style="width: 240px; min-height: 360px; box-sizing: border-box;" 
+                 class="bg-white border border-slate-300 rounded-xl p-3 flex flex-col justify-between items-center text-center">
+              
+              <div class="w-full border-b border-indigo-100 pb-1 shrink-0">
+                <span class="text-[10px] font-bold text-indigo-700 tracking-wider block leading-none">PHYSICS LABORATORY</span>
+                <p class="text-[10px] text-slate-500 font-medium mt-0.5">บัตรประจำตัวสแกนเข้าเรียน</p>
+              </div>
+
+              <div class="my-2 flex flex-col items-center shrink-0">
+                <div id="qrcode" class="flex justify-center"></div>
+                <p id="qrIdDisplay" class="text-xs font-bold text-slate-800 tracking-wider mt-1 leading-tight">-</p>
+              </div>
+
+              <div class="w-full bg-slate-50 rounded-lg p-2 text-left border border-slate-100 flex flex-col gap-0.5 shrink-0">
+                <p id="cardName" class="text-[11px] font-bold text-slate-800 leading-snug break-words">-</p>
+                <div class="flex justify-between items-center text-[10px] text-slate-600 pt-0.5 border-t border-slate-200 mt-0.5">
+                  <span>วิชา: <b id="cardCourse">-</b></span>
+                  <span>โต๊ะ: <b id="cardSeat" class="text-indigo-600 font-bold text-[11px]">-</b></span>
+                </div>
+                <p class="text-[9.5px] text-slate-500 leading-tight break-words mt-0.5">
+                  กลุ่ม: <span id="cardGroup" class="text-slate-700 font-medium">-</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+
         </div>
-      </div>
-  </main>
+      </div>  </main>
 
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-6 mt-8">
@@ -453,45 +465,59 @@
     }
 
         // แก้ไขฟังก์ชันนี้: ย่อขนาด QR ให้พอดีการ์ด และส่งข้อมูลชื่อ-โต๊ะลงในการ์ด
+        let currentBadgeDataUrl = ""; // เก็บ Base64 ของรูปภาพ
+
     function renderQrCode() {
+      // 1. ใส่ข้อมูลลงในการ์ดต้นแบบ
       const qrContainer = document.getElementById("qrcode");
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
         text: currentStudent.id,
-        width: 105,
-        height: 105,
+        width: 110,
+        height: 110,
         colorDark : "#1e1b4b",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
       });
       
-      // ส่งข้อมูลเข้าป้ายชื่อ
       document.getElementById("qrIdDisplay").textContent = currentStudent.id;
       document.getElementById("cardName").textContent = currentStudent.name || "-";
       document.getElementById("cardCourse").textContent = currentStudent.course || "-";
       document.getElementById("cardSeat").textContent = currentStudent.desk || "-";
       document.getElementById("cardGroup").textContent = (currentStudent.group || "-") + " (" + (currentStudent.regularDate || "-") + ")";
+
+      // 2. จัดการสถานะการโหลด
+      const loadingEl = document.getElementById("badgeLoading");
+      const imgEl = document.getElementById("badgeImg");
+      loadingEl.classList.remove("hidden");
+      imgEl.classList.add("hidden");
+
+      // 3. แปลงเป็นรูปภาพทันที เพื่อนำไปใส่ในแท็ก <img>
+      setTimeout(() => {
+        const element = document.getElementById("badgeCard");
+        html2canvas(element, {
+          scale: 3, // คมชัดสูง
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          height: element.scrollHeight,
+          windowHeight: element.scrollHeight
+        }).then(canvas => {
+          currentBadgeDataUrl = canvas.toDataURL("image/png");
+          imgEl.src = currentBadgeDataUrl;
+          loadingEl.classList.add("hidden");
+          imgEl.classList.remove("hidden"); // แสดงภาพจริง นักศึกษาจะกดค้างเซฟได้จากตรงนี้
+        });
+      }, 350); // รอให้ QR Code วาดเสร็จสมบูรณ์ก่อนแปลงเป็นรูป
     }
 
-    // เพิ่มฟังก์ชันนี้: สั่งแปลงการ์ดเป็นไฟล์รูปภาพ PNG ความละเอียดสูง (300+ DPI)
-        function downloadBadge() {
-      const element = document.getElementById("badgeCard");
-      
-      // ตั้งค่า html2canvas ให้จับภาพตามความสูงจริงของเนื้อหา (ไม่โดนตัด)
-      html2canvas(element, {
-        scale: 3,                 // ขยายความคมชัด 3 เท่า
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        height: element.scrollHeight, // บังคับจับภาพให้ครบความสูงทั้งหมด
-        windowHeight: element.scrollHeight
-      }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `NameCard_${currentStudent.id}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      });
+    // ฟังก์ชันสำหรับกดปุ่มดาวน์โหลด (ทางเลือกเผื่อไม่อยากกดค้าง)
+    function downloadBadge() {
+      if (!currentBadgeDataUrl) return;
+      const link = document.createElement("a");
+      link.download = `NameCard_${currentStudent.id}.png`;
+      link.href = currentBadgeDataUrl;
+      link.click();
     }
-
     function switchTab(tabIndex) {
       for (let i = 1; i <= 4; i++) {
         document.getElementById(`tabContent${i}`).classList.add("hidden");
