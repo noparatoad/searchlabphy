@@ -163,7 +163,16 @@
               </span>
             </div>
           </div>
-
+          <!-- ✅ เพิ่มใหม่: กล่องแจ้งเตือนขาดเรียน -->
+          <div id="absenceAlert" class="hidden p-4 rounded-xl border">
+            <div class="flex items-start gap-3">
+              <span id="absenceAlertIcon" class="text-2xl leading-none">🚫</span>
+              <div>
+                <p id="absenceAlertTitle" class="font-bold"></p>
+                <p id="absenceAlertText" class="text-sm mt-0.5"></p>
+              </div>
+            </div>
+          </div>
           <!-- ตารางสถิติการเข้าเรียน -->
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
@@ -420,36 +429,69 @@
       }
     }
 
-    function renderAttendance() {
+        function renderAttendance() {
+      const MAX_ABSENT = 2; // ขาดได้ไม่เกิน 2 การทดลอง
+
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
-      
+
+      // วันนี้ในรูปแบบ YYYY-MM-DD
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${("0" + (now.getMonth() + 1)).slice(-2)}-${("0" + now.getDate()).slice(-2)}`;
+
       let attendedCount = 0;
+      let absentCount = 0;
       const totalLabs = currentStudent.labs.length;
 
       currentStudent.labs.forEach(lab => {
         const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-        let timeOnly = "";
+        // ถือว่า "ขาด" เมื่อวันเรียนผ่านมาแล้ว (ก่อนวันนี้) และไม่มีเวลาเช็คอิน
+        const isPast = toStandardYMD(lab.date) < todayStr;
+        const isAbsent = !isAttended && isPast;
 
+        let badge = "";
         if (isAttended) {
           attendedCount++;
-          timeOnly = formatTimeDisplay(lab.checkIn);
+          badge = `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${formatTimeDisplay(lab.checkIn)}</span>`;
+        } else if (isAbsent) {
+          absentCount++;
+          badge = `<span class="text-rose-700 font-medium text-xs bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md">ขาดเรียน</span>`;
+        } else {
+          badge = `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`;
         }
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 transition">
             <td class="py-3 font-semibold text-slate-700">Lab ${lab.labNo}</td>
             <td class="py-3 text-slate-600">${lab.labName}</td>
-            <td class="py-3 text-right">
-              ${isAttended 
-                ? `<span class="text-emerald-700 font-medium text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">${timeOnly}</span>` 
-                : `<span class="text-slate-400 text-xs bg-slate-100 px-2.5 py-1 rounded-md">ยังไม่เข้าเรียน</span>`}
-            </td>
+            <td class="py-3 text-right">${badge}</td>
           </tr>
         `;
       });
 
       document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
+
+      // ---------- กล่องแจ้งเตือน ----------
+      const box   = document.getElementById("absenceAlert");
+      const icon  = document.getElementById("absenceAlertIcon");
+      const title = document.getElementById("absenceAlertTitle");
+      const text  = document.getElementById("absenceAlertText");
+
+      if (absentCount > MAX_ABSENT) {
+        // ขาดเกิน 2 → หมดสิทธิ์
+        box.className = "p-4 rounded-xl border bg-rose-50 border-rose-300 text-rose-700";
+        icon.textContent = "🚫";
+        title.textContent = "แจ้งเตือน: ขาดเรียนเกินกำหนด";
+        text.textContent = `คุณขาดเรียน ${absentCount} การทดลอง (เกิน ${MAX_ABSENT} การทดลอง) จึงหมดสิทธิ์สอบปลายภาค`;
+      } else if (absentCount === MAX_ABSENT) {
+        // ขาดครบ 2 → เตือนล่วงหน้า
+        box.className = "p-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-700";
+        icon.textContent = "⚠️";
+        title.textContent = "คำเตือน: ขาดเรียนครบ 2 การทดลองแล้ว";
+        text.textContent = `หากขาดเรียนอีก 1 การทดลองจะหมดสิทธิ์สอบปลายภาค`;
+      } else {
+        box.className = "hidden";
+      }
     }
 
         // แก้ไขฟังก์ชันนี้: ย่อขนาด QR ให้พอดีการ์ด และส่งข้อมูลชื่อ-โต๊ะลงในการ์ด
