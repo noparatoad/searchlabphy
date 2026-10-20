@@ -251,13 +251,7 @@
     </div>
   </footer>
 
-  <!-- ✅ เพิ่มใหม่: สถิติผู้เข้าใช้งาน (มุมล่างซ้าย) -->
-  <div id="visitorStats"
-       class="fixed bottom-3 left-3 z-50 bg-white/90 backdrop-blur border border-slate-200 rounded-full shadow px-3 py-1.5 text-[11px] text-slate-500 flex items-center gap-2">
-    <span>👁️ ทั้งหมด <b id="visitTotal" class="text-slate-700">-</b></span>
-    <span class="text-slate-300">|</span>
-    <span>วันนี้ <b id="visitToday" class="text-indigo-600">-</b></span>
-  </div>
+  
   
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBHyx9HjuW1ws_8ZnDFetCAqbdd0LHAMDQypdJKx9BXRN4vP6bt25q575jydGrqxXv/exec";
@@ -555,43 +549,7 @@
       activeBtn.classList.remove("border-transparent", "text-slate-500");
     }
 
-    // ================== สถิติผู้เข้าใช้งานเว็บ ==================
-    // ⚠️ เปลี่ยนชื่อ namespace ให้เป็นชื่อเฉพาะของคุณ (ห้ามซ้ำกับคนอื่น)
-      const COUNTER_URL = SCRIPT_URL + "?action=visit";
-
-    async function trackVisit() {
-      const totalEl = document.getElementById("visitTotal");
-      const todayEl = document.getElementById("visitToday");
-
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${("0" + (now.getMonth() + 1)).slice(-2)}-${("0" + now.getDate()).slice(-2)}`;
-
-      // นับ 1 ครั้งต่อเบราว์เซอร์ต่อวัน (กดรีเฟรชไม่ทำให้ตัวเลขเพิ่ม)
-      const flagKey = "visit_counted_" + todayStr;
-      const shouldCount = !localStorage.getItem(flagKey);
-
-      const BASE = `https://api.counterapi.dev/v1/${COUNTER_NS}`;
-      const call = (key) =>
-      const res = await fetch(COUNTER_URL + (shouldCount ? "&hit=1" : ""), { redirect: "follow" });
-          .then(r => r.json());
-
-      try {
-        const [total, today] = await Promise.all([
-          call("total"),
-          call("day-" + todayStr)
-        ]);
-
-        totalEl.textContent = Number(total.count).toLocaleString("th-TH");
-        todayEl.textContent = Number(today.count).toLocaleString("th-TH");
-
-        if (shouldCount) localStorage.setItem(flagKey, "1");
-      } catch (err) {
-        console.warn("visitor counter error:", err);
-        document.getElementById("visitorStats").classList.add("hidden"); // ถ้าพังให้ซ่อนไปเฉยๆ
-      }
-    }
-
-    trackVisit();
+   
     
   </script>
 </body>
