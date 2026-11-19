@@ -4,61 +4,55 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบตรวจสอบข้อมูลและสถิติการเรียน - ปฏิบัติการฟิสิกส์</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- QR Code Library (ทำงาน Offline บนเครื่องนักศึกษา) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- เพิ่มบรรทัดนี้: Library สำหรับแปลงป้ายชื่อเป็นไฟล์ภาพ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- PDF.js สำหรับแสดงปฏิทินการเรียน -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Prompt', sans-serif; }
-.custom-btn {
-  display: inline-block;
-  padding: 8px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  text-decoration: none;
-  color: #ffffff !important;
-  background-color: #40826D; /* สีน้ำเงิน (เปลี่ยนรหัสสีได้) */
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease-in-out;
-}
+    .custom-btn {
+      display: inline-block;
+      padding: 8px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #ffffff !important;
+      background-color: #40826D;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease-in-out;
+    }
+    .custom-btn:hover {
+      background-color: #0b5ed7;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transform: translateY(-1px);
+    }
 
-.custom-btn:hover {
-  background-color: #0b5ed7; /* สีจะเข้มขึ้นเมื่อเอาเมาส์ชี้ */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
-}
-/* ปฏิทิน PDF: ให้ canvas กว้างเต็มกรอบเสมอ ไม่ล้นจอ */
-#pdfPages canvas {
-  width: 100%;
-  height: auto;
-  display: block;
-  margin: 0 auto 14px auto;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}   
+    /* ปฏิทิน PDF: canvas กว้างเต็มกรอบเสมอ ไม่ล้นจอ */
+    #pdfPages canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto 14px auto;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col text-slate-800">
 
-  <!-- ปุ่มลอยมุมบนขวา -->
+  <!-- ปุ่มมุมบนขวา -->
   <div style="display: flex; justify-content: flex-end; padding: 15px 25px;">
-      <a href="https://script.google.com/macros/s/AKfycbzhTnq0lRjbvNE3_HB0DaXvTqDMFgJvgrSiAXYerGjKG_3HX9LbHMWGztgXNz2ev49hgQ/exec" 
-         target="_blank" 
-         class="custom-btn">
-         ชดเชยปฏิบัติการฟิสิกส์ CLICK
-      </a>
+    <a href="https://script.google.com/macros/s/AKfycbzhTnq0lRjbvNE3_HB0DaXvTqDMFgJvgrSiAXYerGjKG_3HX9LbHMWGztgXNz2ev49hgQ/exec"
+       target="_blank" class="custom-btn">
+      ชดเชยปฏิบัติการฟิสิกส์ CLICK
+    </a>
   </div>
 
-  <!-- เนื้อหาเดิมของเว็บคุณจะอยู่ตรงนี้... -->
-  
   <!-- Header -->
   <header class="bg-indigo-700 text-white py-6 shadow-md">
     <div class="max-w-4xl mx-auto px-4 text-center">
@@ -67,14 +61,14 @@
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- Main -->
   <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
-    
+
     <!-- Search Box -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
       <label for="stdIdInput" class="block text-sm font-medium text-slate-700 mb-2">กรอกรหัสนักศึกษา (กด Enter หรือปุ่มค้นหา)</label>
       <div class="flex gap-2">
-        <input type="text" id="stdIdInput" placeholder="เช่น 66010001" 
+        <input type="text" id="stdIdInput" placeholder="เช่น 66010001"
                class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-lg"
                onkeypress="if(event.key === 'Enter') searchStudent()">
         <button onclick="searchStudent()" id="searchBtn"
@@ -82,18 +76,17 @@
           ค้นหา
         </button>
       </div>
-      <!-- Loading & Error Indicators -->
       <p id="statusMsg" class="text-indigo-600 text-sm mt-3 flex items-center gap-2">
         <span class="inline-block animate-spin">⏳</span> กำลังเตรียมความพร้อมระบบฐานข้อมูล...
       </p>
       <p id="errorMsg" class="text-rose-500 text-sm mt-2 hidden font-medium"></p>
     </div>
 
-    <!-- Student Info Dashboard -->
-    <div id="contentArea" class="hidden space-y-6">
-      
-      <!-- ข้อมูลประจำตัวนักศึกษา -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+    <!-- contentArea แสดงตลอด -->
+    <div id="contentArea" class="space-y-6">
+
+      <!-- ข้อมูลนักศึกษา (ซ่อนจนกว่าจะค้นหาเจอ) -->
+      <div id="studentInfoCard" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           <div>
             <p class="text-xs text-slate-400">รหัสนักศึกษา</p>
@@ -118,7 +111,7 @@
         </div>
       </div>
 
-      <!-- หมวดหมู่การแสดงผลทั้ง 4 ส่วน -->
+      <!-- แถบแท็บ -->
       <div class="flex border-b border-slate-200 overflow-x-auto gap-2">
         <button onclick="switchTab(1)" id="tabBtn1" class="tab-btn py-3 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">1. ข้อมูลทั้งหมด</button>
         <button onclick="switchTab(2)" id="tabBtn2" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">2. เรียนวันนี้</button>
@@ -127,8 +120,19 @@
         <button onclick="switchTab(5)" id="tabBtn5" class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">5. ปฏิทินการเรียน</button>
       </div>
 
-      <!-- ส่วนที่ 1: ตารางแสดงข้อมูลทั้งหมด -->
-      <div id="tabContent1" class="tab-pane">
+      <!-- ข้อความแจ้งเมื่อยังไม่ได้ค้นหา (แท็บ 1-4) -->
+      <div id="needSearchMsg" class="hidden bg-white rounded-2xl p-8 shadow-sm border border-slate-200 text-center">
+        <div class="text-4xl mb-3">🔎</div>
+        <h3 class="text-slate-700 font-semibold text-lg">กรุณากรอกรหัสนักศึกษาก่อน</h3>
+        <p class="text-slate-400 text-sm mt-1">กรอกรหัสนักศึกษาในช่องค้นหาด้านบน เพื่อดูข้อมูลส่วนนี้</p>
+        <button onclick="switchTab(5)"
+                class="mt-5 inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 px-4 py-2 rounded-xl text-sm font-medium transition">
+          📅 ดูปฏิทินการเรียน (ไม่ต้องกรอกรหัส)
+        </button>
+      </div>
+
+      <!-- แท็บ 1 -->
+      <div id="tabContent1" class="tab-pane hidden">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
@@ -147,22 +151,20 @@
         </div>
       </div>
 
-      <!-- ส่วนที่ 2: แสดงการทดลองวันนี้ -->
+      <!-- แท็บ 2 -->
       <div id="tabContent2" class="tab-pane hidden">
         <div id="todayContent" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"></div>
       </div>
 
-      <!-- ส่วนที่ 3: สถิติการเข้าเรียน -->
+      <!-- แท็บ 3 -->
       <div id="tabContent3" class="tab-pane hidden">
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
-          
-          <!-- Header สถิติ และ ข้อความแจ้งเตือน -->
+
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-4">
             <div>
               <p class="text-sm text-slate-500">สรุปการเข้าเรียน</p>
               <p id="attendanceSummary" class="text-2xl font-bold text-indigo-600">0 / 0 การทดลอง</p>
             </div>
-            
             <div class="flex flex-col items-start sm:items-end gap-1.5">
               <span class="text-rose-600 text-xs sm:text-sm font-semibold flex items-center gap-1">
                 <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 20 20">
@@ -170,13 +172,12 @@
                 </svg>
                 นักศึกษาที่มีเวลาเรียนไม่ถึง 80% หรือขาดเรียนมากกว่า 2 การทดลอง "จะหมดสิทธิ์สอบปลายภาค"
               </span>
-              
               <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
                 ⚠️ สถิติจะอัพเดททุกๆวันจันทร์ เวลา 12:00 น.
               </span>
             </div>
           </div>
-          <!-- ✅ เพิ่มใหม่: กล่องแจ้งเตือนขาดเรียน -->
+
           <div id="absenceAlert" class="hidden p-4 rounded-xl border">
             <div class="flex items-start gap-3">
               <span id="absenceAlertIcon" class="text-2xl leading-none">🚫</span>
@@ -186,7 +187,7 @@
               </div>
             </div>
           </div>
-          <!-- ตารางสถิติการเข้าเรียน -->
+
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="text-slate-400 border-b border-slate-100">
@@ -199,93 +200,83 @@
               <tbody id="attendanceTable" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
-
         </div>
       </div>
 
-  <!-- ส่วนที่ 4: ป้ายชื่อและ QR Code (5.4 x 8.5 cm) -->
+      <!-- แท็บ 4 -->
       <div id="tabContent4" class="tab-pane hidden">
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col items-center">
-          
-          <!-- ปุ่มบันทึกรูป -->
+
           <button onclick="downloadBadge()" class="mb-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 px-5 rounded-xl transition shadow flex items-center gap-2">
             📥 บันทึกรูปป้ายชื่อ (ขนาด 5.4 x 8.5 cm)
           </button>
 
-          <!-- บัตรประจำตัวนักศึกษา -->
-                    <!-- บัตรประจำตัวนักศึกษา (ปรับปรุงเพื่อไม่ให้ข้อความโดนตัด) -->
-          <div id="badgeCard" style="width: 240px; min-height: 360px; box-sizing: border-box;" 
+          <div id="badgeCard" style="width: 240px; min-height: 360px; box-sizing: border-box;"
                class="bg-white border border-slate-300 rounded-xl p-3 shadow-md flex flex-col justify-between items-center text-center bg-clip-border">
-            
-            <!-- ส่วนหัวการ์ด -->
+
             <div class="w-full border-b border-indigo-100 pb-1 shrink-0">
               <span class="text-[10px] font-bold text-indigo-700 tracking-wider block leading-none">PHYSICS LABORATORY</span>
               <p class="text-[10px] text-slate-500 font-medium mt-0.5">บัตรประจำตัวสแกนเข้าเรียน</p>
             </div>
 
-            <!-- ส่วน QR Code -->
             <div class="my-2 flex flex-col items-center shrink-0">
               <div id="qrcode" class="flex justify-center"></div>
               <p id="qrIdDisplay" class="text-xs font-bold text-slate-800 tracking-wider mt-1 leading-tight">-</p>
             </div>
 
-            <!-- ส่วนข้อมูลนักศึกษา (เอา truncate ออก และยอมให้ขึ้นบรรทัดใหม่ได้) -->
             <div class="w-full bg-slate-50 rounded-lg p-2 text-left border border-slate-100 flex flex-col gap-0.5 shrink-0">
               <p id="cardName" class="text-[11px] font-bold text-slate-800 leading-snug break-words">-</p>
-              
               <div class="flex justify-between items-center text-[10px] text-slate-600 pt-0.5 border-t border-slate-200/60 mt-0.5">
                 <span>วิชา: <b id="cardCourse">-</b></span>
                 <span>โต๊ะ: <b id="cardSeat" class="text-indigo-600 font-bold text-[11px]">-</b></span>
               </div>
-              
               <p class="text-[9.5px] text-slate-500 leading-tight break-words mt-0.5">
                 กลุ่ม: <span id="cardGroup" class="text-slate-700 font-medium">-</span>
               </p>
             </div>
-
           </div>
 
           <p class="text-xs text-slate-400 mt-4 text-center">* รูปภาพที่ดาวน์โหลดมีสัดส่วนมาตรฐาน 5.4 x 8.5 ซม. คมชัดสูงสำหรับปริ้นท์ใช้งาน</p>
         </div>
       </div>
-  <!-- ส่วนที่ 5: ปฏิทินการเรียน -->
-<div id="tabContent5" class="tab-pane hidden">
-  <div class="bg-white rounded-2xl p-3 sm:p-6 shadow-sm border border-slate-200">
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-      <h3 class="font-bold text-slate-800 text-base sm:text-lg">📅 ปฏิทินการเรียนรายวิชาปฏิบัติการฟิสิกส์</h3>
-      <div class="flex gap-2">
-        <a href="lab-calendar.pdf" target="_blank" rel="noopener"
-           class="text-xs sm:text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-medium transition">
-          🔍 เปิดเต็มจอ
-        </a>
-        <a href="lab-calendar.pdf" download="ปฏิทินการเรียนปฏิบัติการฟิสิกส์.pdf"
-           class="text-xs sm:text-sm bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-lg font-medium transition">
-          📥 ดาวน์โหลด
-        </a>
+      <!-- ✅ แท็บ 5: ปฏิทินการเรียน (ไม่ต้องค้นหารหัส) -->
+      <div id="tabContent5" class="tab-pane hidden">
+        <div class="bg-white rounded-2xl p-3 sm:p-6 shadow-sm border border-slate-200">
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 class="font-bold text-slate-800 text-base sm:text-lg">📅 ปฏิทินการเรียนรายวิชาปฏิบัติการฟิสิกส์</h3>
+            <div class="flex gap-2">
+              <a href="lab-calendar.pdf" target="_blank" rel="noopener"
+                 class="text-xs sm:text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-medium transition">
+                🔍 เปิดเต็มจอ
+              </a>
+              <a href="lab-calendar.pdf" download="ปฏิทินการเรียนปฏิบัติการฟิสิกส์.pdf"
+                 class="text-xs sm:text-sm bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-lg font-medium transition">
+                📥 ดาวน์โหลด
+              </a>
+            </div>
+          </div>
+
+          <p id="pdfLoading" class="text-center text-indigo-600 text-sm py-10">
+            <span class="inline-block animate-spin">⏳</span> กำลังโหลดปฏิทิน...
+          </p>
+          <p id="pdfError" class="hidden text-center text-rose-500 text-sm py-6">
+            ❌ ไม่สามารถแสดงปฏิทินได้ กรุณากด "เปิดเต็มจอ" หรือ "ดาวน์โหลด" ด้านบน
+          </p>
+
+          <div id="pdfPages"></div>
+        </div>
       </div>
-    </div>
 
-    <p id="pdfLoading" class="text-center text-indigo-600 text-sm py-10">
-      <span class="inline-block animate-spin">⏳</span> กำลังโหลดปฏิทิน...
-    </p>
-    <p id="pdfError" class="hidden text-center text-rose-500 text-sm py-6">
-      ❌ ไม่สามารถแสดงปฏิทินได้ กรุณากด "เปิดเต็มจอ" หรือ "ดาวน์โหลด" ด้านบน
-    </p>
-
-    <!-- หน้า PDF จะถูกสร้างเรียงลงมาที่นี่ -->
-    <div id="pdfPages"></div>
-  </div>
-</div>
-  
-  
+    </div><!-- /contentArea -->
   </main>
 
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-6 mt-8">
     <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
       <p class="text-slate-600 text-sm text-center sm:text-left">หากพบปัญหาแจ้งที่ Line Official LabPhysics</p>
-      <a href="https://lin.ee/Q5FokRl" target="_blank" rel="noopener noreferrer" 
+      <a href="https://lin.ee/Q5FokRl" target="_blank" rel="noopener noreferrer"
          class="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b34c] text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-sm">
         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M24 10.3c0-4.8-4.9-8.7-11-8.7S2 5.5 2 10.3c0 4.3 3.9 7.9 9.2 8.6.4.1.9.3 1 .7.1.4.1 1 0 1.4-.2.8-.7 3.1-.7 3.3 0 .4.3.7.8.4 2.8-1.7 7.7-4.6 10.4-7.9 1.5-1.8 2.3-3.9 2.3-6.1z"/>
@@ -294,39 +285,34 @@
       </a>
     </div>
   </footer>
-
-  
-  
-  <script>
+ 
+    <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBHyx9HjuW1ws_8ZnDFetCAqbdd0LHAMDQypdJKx9BXRN4vP6bt25q575jydGrqxXv/exec";
 
     let db = null;
     let currentStudent = null;
+    let currentTab = 1;
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแปลงเป็น วัน/เดือน/ปี (dd/mm/yyyy) ---
+    // ---------- จัดรูปแบบวันที่/เวลา ----------
     function formatDateDisplay(dateVal) {
       if (!dateVal) return "-";
       const d = new Date(dateVal);
       if (isNaN(d.getTime())) {
-        // กรณีไม่ใช่ Date Object แต่เป็นสตริง เช่น 2023-10-25
         const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (match) return `${match[3]}/${match[2]}/${match[1]}`;
         return dateVal;
       }
       const day = ("0" + d.getDate()).slice(-2);
       const month = ("0" + (d.getMonth() + 1)).slice(-2);
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+      return `${day}/${month}/${d.getFullYear()}`;
     }
 
-    // --- ฟังก์ชันสำหรับตัด Timezone และแสดงเฉพาะเวลา (HH:mm) ---
     function formatTimeDisplay(timeVal) {
       if (!timeVal) return "-";
       const match = String(timeVal).match(/\d{1,2}:\d{2}/);
       return match ? match[0] + " น." : timeVal;
     }
 
-    // ฟังก์ชันแปลงเป็น YYYY-MM-DD เพื่อใช้เทียบกับวันปัจจุบัน
     function toStandardYMD(dateVal) {
       if (!dateVal) return "";
       const d = new Date(dateVal);
@@ -334,27 +320,19 @@
         const match = String(dateVal).match(/^(\d{4})-(\d{2})-(\d{2})/);
         return match ? match[0] : String(dateVal);
       }
-      const year = d.getFullYear();
       const month = ("0" + (d.getMonth() + 1)).slice(-2);
       const day = ("0" + d.getDate()).slice(-2);
-      return `${year}-${month}-${day}`;
+      return `${d.getFullYear()}-${month}-${day}`;
     }
 
+    // ---------- โหลดฐานข้อมูล ----------
     async function initSystem() {
       const statusEl = document.getElementById("statusMsg");
       try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "GET",
-          redirect: "follow"
-        });
-
+        const res = await fetch(SCRIPT_URL, { method: "GET", redirect: "follow" });
         if (!res.ok) throw new Error("HTTP Status: " + res.status);
-
         db = await res.json();
-
-        if (db.error) {
-          throw new Error(db.error);
-        }
+        if (db.error) throw new Error(db.error);
 
         statusEl.textContent = "✅ ระบบพร้อมค้นหาข้อมูล";
         statusEl.className = "text-emerald-600 text-xs mt-2 font-medium";
@@ -364,19 +342,17 @@
         statusEl.className = "text-rose-500 text-xs mt-2 font-medium";
       }
     }
-
     initSystem();
 
+    // ---------- ค้นหา ----------
     function searchStudent() {
       const input = document.getElementById("stdIdInput").value.trim();
-      const errEl = document.getElementById("errorMsg");
-      errEl.classList.add("hidden");
+      document.getElementById("errorMsg").classList.add("hidden");
 
       if (!input) {
         showError("กรุณากรอกรหัสนักศึกษา");
         return;
       }
-
       if (!db) {
         showError("กำลังเชื่อมต่อฐานข้อมูล กรุณารอสักครู่แล้วค้นหาอีกครั้ง");
         return;
@@ -385,7 +361,9 @@
       const student = db[input];
       if (!student) {
         showError("ไม่พบข้อมูลรหัสนักศึกษา " + input + " ในระบบ");
-        document.getElementById("contentArea").classList.add("hidden");
+        currentStudent = null;
+        document.getElementById("studentInfoCard").classList.add("hidden");
+        switchTab(currentTab);   // รีเฟรชแท็บปัจจุบัน (แท็บ 1-4 จะขึ้นให้กรอกรหัส)
         return;
       }
 
@@ -399,18 +377,17 @@
       errEl.classList.remove("hidden");
     }
 
+    // ---------- แสดงข้อมูลนักศึกษา ----------
     function renderStudentData() {
-      // แสดงข้อมูลส่วนตัว
       document.getElementById("dispId").textContent = currentStudent.id;
       document.getElementById("dispName").textContent = currentStudent.name || "-";
       document.getElementById("dispCourse").textContent = currentStudent.course || "-";
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-      // แสดง Tab 1: รายการแล็บทั้งหมด (ตัด Timezone ออก และแปลงเป็น วัน/เดือน/ปี)
+      // แท็บ 1
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
-      
       if (currentStudent.labs.length === 0) {
         allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
       } else {
@@ -426,19 +403,18 @@
         });
       }
 
-      // แสดง Tab 2: ตรวจสอบแล็บวันนี้
       renderToday();
-
-      // แสดง Tab 3: สถิติการเข้าเรียน
       renderAttendance();
-
-      // แสดง Tab 4: QR Code
       renderQrCode();
 
-      document.getElementById("contentArea").classList.remove("hidden");
-      switchTab(1);
+      // แสดงกล่องข้อมูลนักศึกษา
+      document.getElementById("studentInfoCard").classList.remove("hidden");
+
+      // ถ้าดูปฏิทินอยู่ ให้อยู่แท็บเดิม ถ้าไม่ใช่ให้ไปแท็บ 1
+      switchTab(currentTab === 5 ? 5 : 1);
     }
 
+    // ---------- แท็บ 2: เรียนวันนี้ ----------
     function renderToday() {
       const todayEl = document.getElementById("todayContent");
       const now = new Date();
@@ -448,7 +424,6 @@
       const todayStr = `${y}-${m}-${d}`;
       const todayDisplayStr = `${d}/${m}/${y}`;
 
-      // ใช้ toStandardYMD เพื่อเปรียบเทียบวันได้อย่างแม่นยำ
       const todayLab = currentStudent.labs.find(lab => toStandardYMD(lab.date) === todayStr);
 
       if (todayLab) {
@@ -474,14 +449,13 @@
         `;
       }
     }
-
-        function renderAttendance() {
-      const MAX_ABSENT = 2; // ขาดได้ไม่เกิน 2 การทดลอง
+       // ---------- แท็บ 3: สถิติการเข้าเรียน ----------
+    function renderAttendance() {
+      const MAX_ABSENT = 2;
 
       const tbody = document.getElementById("attendanceTable");
       tbody.innerHTML = "";
 
-      // วันนี้ในรูปแบบ YYYY-MM-DD
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${("0" + (now.getMonth() + 1)).slice(-2)}-${("0" + now.getDate()).slice(-2)}`;
 
@@ -491,7 +465,6 @@
 
       currentStudent.labs.forEach(lab => {
         const isAttended = lab.checkIn && String(lab.checkIn).trim() !== "";
-        // ถือว่า "ขาด" เมื่อวันเรียนผ่านมาแล้ว (ก่อนวันนี้) และไม่มีเวลาเช็คอิน
         const isPast = toStandardYMD(lab.date) < todayStr;
         const isAbsent = !isAttended && isPast;
 
@@ -517,30 +490,27 @@
 
       document.getElementById("attendanceSummary").textContent = `${attendedCount} / ${totalLabs} การทดลอง`;
 
-      // ---------- กล่องแจ้งเตือน ----------
       const box   = document.getElementById("absenceAlert");
       const icon  = document.getElementById("absenceAlertIcon");
       const title = document.getElementById("absenceAlertTitle");
       const text  = document.getElementById("absenceAlertText");
 
       if (absentCount > MAX_ABSENT) {
-        // ขาดเกิน 2 → หมดสิทธิ์
         box.className = "p-4 rounded-xl border bg-rose-50 border-rose-300 text-rose-700";
         icon.textContent = "🚫";
         title.textContent = "แจ้งเตือน: ขาดเรียนเกินกำหนด";
         text.textContent = `คุณขาดเรียน ${absentCount} การทดลอง (เกิน ${MAX_ABSENT} การทดลอง) จึงหมดสิทธิ์สอบปลายภาค`;
       } else if (absentCount === MAX_ABSENT) {
-        // ขาดครบ 2 → เตือนล่วงหน้า
         box.className = "p-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-700";
         icon.textContent = "⚠️";
         title.textContent = "คำเตือน: ขาดเรียนครบ 2 การทดลองแล้ว";
-        text.textContent = `หากขาดเรียนอีก 1 การทดลองจะหมดสิทธิ์สอบปลายภาค`;
+        text.textContent = "หากขาดเรียนอีก 1 การทดลองจะหมดสิทธิ์สอบปลายภาค";
       } else {
         box.className = "hidden";
       }
     }
 
-        // แก้ไขฟังก์ชันนี้: ย่อขนาด QR ให้พอดีการ์ด และส่งข้อมูลชื่อ-โต๊ะลงในการ์ด
+    // ---------- แท็บ 4: QR Code ----------
     function renderQrCode() {
       const qrContainer = document.getElementById("qrcode");
       qrContainer.innerHTML = "";
@@ -548,12 +518,11 @@
         text: currentStudent.id,
         width: 105,
         height: 105,
-        colorDark : "#1e1b4b",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+        colorDark: "#1e1b4b",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
       });
-      
-      // ส่งข้อมูลเข้าป้ายชื่อ
+
       document.getElementById("qrIdDisplay").textContent = currentStudent.id;
       document.getElementById("cardName").textContent = currentStudent.name || "-";
       document.getElementById("cardCourse").textContent = currentStudent.course || "-";
@@ -561,16 +530,13 @@
       document.getElementById("cardGroup").textContent = (currentStudent.group || "-") + " (" + (currentStudent.regularDate || "-") + ")";
     }
 
-    // เพิ่มฟังก์ชันนี้: สั่งแปลงการ์ดเป็นไฟล์รูปภาพ PNG ความละเอียดสูง (300+ DPI)
-        function downloadBadge() {
+    function downloadBadge() {
       const element = document.getElementById("badgeCard");
-      
-      // ตั้งค่า html2canvas ให้จับภาพตามความสูงจริงของเนื้อหา (ไม่โดนตัด)
       html2canvas(element, {
-        scale: 3,                 // ขยายความคมชัด 3 เท่า
+        scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff',
-        height: element.scrollHeight, // บังคับจับภาพให้ครบความสูงทั้งหมด
+        height: element.scrollHeight,
         windowHeight: element.scrollHeight
       }).then(canvas => {
         const link = document.createElement("a");
@@ -579,95 +545,111 @@
         link.click();
       });
     }
-// ================= ปฏิทินการเรียน (PDF) =================
-const CALENDAR_PDF_URL = "lab-calendar.pdf";   // ← แก้ชื่อ/ที่อยู่ไฟล์ตรงนี้ถ้าต่างจากนี้
-let pdfDoc = null;
-let pdfLastWidth = 0;
-let pdfRenderToken = 0;
 
-async function loadCalendarPdf() {
-  const container = document.getElementById("pdfPages");
-  const loading = document.getElementById("pdfLoading");
-  const errBox = document.getElementById("pdfError");
+    // ---------- สลับแท็บ ----------
+    function switchTab(tabIndex) {
+      currentTab = tabIndex;
 
-  const width = container.clientWidth;
-  if (!width) return;                                   // แท็บยังซ่อนอยู่
-  if (pdfDoc && Math.abs(width - pdfLastWidth) < 5) return; // ความกว้างเท่าเดิม ไม่ต้องวาดใหม่
+      // ซ่อนทุกแท็บ + ข้อความ "กรอกรหัสก่อน" + รีเซ็ตสีปุ่ม
+      document.getElementById("needSearchMsg").classList.add("hidden");
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`tabContent${i}`).classList.add("hidden");
+        const btn = document.getElementById(`tabBtn${i}`);
+        btn.classList.remove("border-indigo-600", "text-indigo-600", "font-semibold");
+        btn.classList.add("border-transparent", "text-slate-500");
+      }
 
-  pdfLastWidth = width;
-  const token = ++pdfRenderToken;
-  loading.classList.remove("hidden");
-  errBox.classList.add("hidden");
+      // ไฮไลต์ปุ่มที่เลือก
+      const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
+      activeBtn.classList.add("border-indigo-600", "text-indigo-600", "font-semibold");
+      activeBtn.classList.remove("border-transparent", "text-slate-500");
 
-  try {
-    if (!pdfDoc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      pdfDoc = await pdfjsLib.getDocument(CALENDAR_PDF_URL).promise;
+      // แท็บ 1-4 ต้องมีข้อมูลนักศึกษา / แท็บ 5 ดูได้เลย
+      if (tabIndex <= 4 && !currentStudent) {
+        document.getElementById("needSearchMsg").classList.remove("hidden");
+        return;
+      }
+
+      document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
+
+      if (tabIndex === 5) loadCalendarPdf();   // วาด PDF หลังแท็บแสดงแล้ว เพื่อวัดความกว้างได้
     }
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const fragment = document.createDocumentFragment();
+    // ================= ปฏิทินการเรียน (PDF) =================
+    const CALENDAR_PDF_URL = "lab-calendar.pdf";   // ← แก้ชื่อไฟล์ตรงนี้ถ้าต่างจากนี้
+    let pdfDoc = null;
+    let pdfLastWidth = 0;
+    let pdfRenderToken = 0;
 
-    for (let n = 1; n <= pdfDoc.numPages; n++) {
-      const page = await pdfDoc.getPage(n);
-      if (token !== pdfRenderToken) return;             // มีการ render ใหม่แทรกเข้ามา ให้ยกเลิกอันเก่า
+    async function loadCalendarPdf() {
+      const container = document.getElementById("pdfPages");
+      const loading = document.getElementById("pdfLoading");
+      const errBox = document.getElementById("pdfError");
 
-      const base = page.getViewport({ scale: 1 });
-      const scale = (width / base.width) * dpr;         // ปรับให้พอดีความกว้างหน้าจอ
-      const viewport = page.getViewport({ scale });
+      const width = container.clientWidth;
+      if (!width) return;
+      if (pdfDoc && Math.abs(width - pdfLastWidth) < 5) return;
 
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
+      pdfLastWidth = width;
+      const token = ++pdfRenderToken;
+      loading.classList.remove("hidden");
+      errBox.classList.add("hidden");
 
-      await page.render({
-        canvasContext: canvas.getContext("2d"),
-        viewport: viewport
-      }).promise;
+      try {
+        if (!pdfDoc) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          pdfDoc = await pdfjsLib.getDocument(CALENDAR_PDF_URL).promise;
+        }
 
-      fragment.appendChild(canvas);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        const fragment = document.createDocumentFragment();
+
+        for (let n = 1; n <= pdfDoc.numPages; n++) {
+          const page = await pdfDoc.getPage(n);
+          if (token !== pdfRenderToken) return;
+
+          const base = page.getViewport({ scale: 1 });
+          const scale = (width / base.width) * dpr;
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+
+          await page.render({
+            canvasContext: canvas.getContext("2d"),
+            viewport: viewport
+          }).promise;
+
+          fragment.appendChild(canvas);
+        }
+
+        if (token !== pdfRenderToken) return;
+        container.innerHTML = "";
+        container.appendChild(fragment);
+        loading.classList.add("hidden");
+      } catch (e) {
+        console.error("PDF error:", e);
+        loading.classList.add("hidden");
+        errBox.classList.remove("hidden");
+        pdfLastWidth = 0;   // ให้ลองใหม่ได้เมื่อกลับมาเปิดแท็บอีกครั้ง
+      }
     }
 
-    if (token !== pdfRenderToken) return;
-    container.innerHTML = "";
-    container.appendChild(fragment);
-    loading.classList.add("hidden");
-  } catch (e) {
-    console.error("PDF error:", e);
-    loading.classList.add("hidden");
-    errBox.classList.remove("hidden");
-  }
-}
+    // หมุนจอ / ปรับขนาดหน้าต่าง → วาดใหม่ให้พอดี
+    let pdfResizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(pdfResizeTimer);
+      pdfResizeTimer = setTimeout(() => {
+        if (!document.getElementById("tabContent5").classList.contains("hidden")) {
+          loadCalendarPdf();
+        }
+      }, 300);
+    });
 
-// หมุนจอ / ปรับขนาดหน้าต่าง → วาดใหม่ให้พอดี
-let pdfResizeTimer;
-window.addEventListener("resize", () => {
-  clearTimeout(pdfResizeTimer);
-  pdfResizeTimer = setTimeout(() => {
-    if (!document.getElementById("tabContent5").classList.contains("hidden")) {
-      loadCalendarPdf();
-    }
-  }, 300);
-});
-    
-   function switchTab(tabIndex) {
-  for (let i = 1; i <= 5; i++) {            // เปลี่ยนจาก 4 เป็น 5
-    document.getElementById(`tabContent${i}`).classList.add("hidden");
-    const btn = document.getElementById(`tabBtn${i}`);
-    btn.classList.remove("border-indigo-600", "text-indigo-600", "font-semibold");
-    btn.classList.add("border-transparent", "text-slate-500");
-  }
-  document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
-  const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
-  activeBtn.classList.add("border-indigo-600", "text-indigo-600", "font-semibold");
-  activeBtn.classList.remove("border-transparent", "text-slate-500");
-
-  // เปิดแท็บปฏิทิน → โหลด/วาด PDF (ทำหลังแสดงแท็บแล้ว เพื่อให้วัดความกว้างได้)
-  if (tabIndex === 5) loadCalendarPdf();
-}
-   
-    
+    // เปิดหน้าเว็บครั้งแรก: แสดงแท็บ 1 (จะขึ้นข้อความให้กรอกรหัสก่อน)
+    switchTab(1);
   </script>
 </body>
-</html>
+</html> 
