@@ -137,14 +137,14 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
               <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                <tr>
-                  <th class="py-3.5 px-4 font-semibold">การทดลองที่</th>
-                  <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
-                  <th class="py-3.5 px-4 font-semibold">วันเรียน (วัน/เดือน/ปี)</th>
-                  <th class="py-3.5 px-4 font-semibold">เวลาเรียน</th>
-                  <th class="py-3.5 px-4 text-center font-semibold">โต๊ะที่นั่ง</th>
+                  <tr>
+                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">วันเรียน (วัน/เดือน/ปี)</th>
+                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">เวลาเรียน</th>
+                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">การทดลองที่</th>
+                     <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
+                     <th class="py-3.5 px-4 text-center font-semibold whitespace-nowrap">โต๊ะที่นั่ง</th>
                 </tr>
-              </thead>
+            </thead>
               <tbody id="allLabsTable" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
@@ -385,19 +385,37 @@
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-      // แท็บ 1
+            // แท็บ 1: เรียงตามวันที่ (เก่า → ใหม่) ถ้าวันเดียวกันเรียงตามเวลา
       const allLabsTbody = document.getElementById("allLabsTable");
       allLabsTbody.innerHTML = "";
+
       if (currentStudent.labs.length === 0) {
         allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
       } else {
-        currentStudent.labs.forEach(lab => {
+        // ใช้ [...] คัดลอกอาร์เรย์ก่อน เพื่อไม่ให้กระทบลำดับของแท็บ 3 (สถิติ)
+        const sortedLabs = [...currentStudent.labs].sort((a, b) => {
+          const da = toStandardYMD(a.date);
+          const db_ = toStandardYMD(b.date);
+          if (da !== db_) return da < db_ ? -1 : 1;
+          const ta = (String(a.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
+          const tb = (String(b.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return a.labNo - b.labNo;
+        });
+
+        const todayYMD = toStandardYMD(new Date());
+
+        sortedLabs.forEach(lab => {
+          const isToday = toStandardYMD(lab.date) === todayYMD;
           allLabsTbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-              <td class="py-3 px-4 font-semibold text-indigo-600">Lab ${lab.labNo}</td>
+            <tr class="${isToday ? "bg-emerald-50" : "hover:bg-slate-50"} transition">
+              <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
+                ${formatDateDisplay(lab.date)}
+                ${isToday ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">วันนี้</span>' : ""}
+              </td>
+              <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatTimeDisplay(lab.time)}</td>
+              <td class="py-3 px-4 font-semibold text-indigo-600 whitespace-nowrap">Lab ${lab.labNo}</td>
               <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
-              <td class="py-3 px-4 text-slate-600">${formatDateDisplay(lab.date)}</td>
-              <td class="py-3 px-4 text-slate-500">${formatTimeDisplay(lab.time)}</td>
               <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
             </tr>`;
         });
