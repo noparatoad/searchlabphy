@@ -378,59 +378,86 @@
     }
 
     // ---------- แสดงข้อมูลนักศึกษา ----------
-    function renderStudentData() {
+        function renderStudentData() {
       document.getElementById("dispId").textContent = currentStudent.id;
       document.getElementById("dispName").textContent = currentStudent.name || "-";
       document.getElementById("dispCourse").textContent = currentStudent.course || "-";
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-            // แท็บ 1: เรียงตามวันที่ (เก่า → ใหม่) ถ้าวันเดียวกันเรียงตามเวลา
-      const allLabsTbody = document.getElementById("allLabsTable");
-      allLabsTbody.innerHTML = "";
+      renderAllLabs();      // แท็บ 1
+      renderToday();        // แท็บ 2
+      renderAttendance();   // แท็บ 3
+      renderQrCode();       // แท็บ 4
 
-      if (currentStudent.labs.length === 0) {
-        allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
-      } else {
-        // ใช้ [...] คัดลอกอาร์เรย์ก่อน เพื่อไม่ให้กระทบลำดับของแท็บ 3 (สถิติ)
-        const sortedLabs = [...currentStudent.labs].sort((a, b) => {
-          const da = toStandardYMD(a.date);
-          const db_ = toStandardYMD(b.date);
-          if (da !== db_) return da < db_ ? -1 : 1;
-          const ta = (String(a.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
-          const tb = (String(b.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
-          if (ta !== tb) return ta < tb ? -1 : 1;
-          return a.labNo - b.labNo;
-        });
-
-        const todayYMD = toStandardYMD(new Date());
-
-        sortedLabs.forEach(lab => {
-          const isToday = toStandardYMD(lab.date) === todayYMD;
-          allLabsTbody.innerHTML += `
-            <tr class="${isToday ? "bg-emerald-50" : "hover:bg-slate-50"} transition">
-              <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
-                ${formatDateDisplay(lab.date)}
-                ${isToday ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">วันนี้</span>' : ""}
-              </td>
-              <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatTimeDisplay(lab.time)}</td>
-              <td class="py-3 px-4 font-semibold text-indigo-600 whitespace-nowrap">Lab ${lab.labNo}</td>
-              <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
-              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
-            </tr>`;
-        });
-      }
-
-      renderToday();
-      renderAttendance();
-      renderQrCode();
-
-      // แสดงกล่องข้อมูลนักศึกษา
       document.getElementById("studentInfoCard").classList.remove("hidden");
-
-      // ถ้าดูปฏิทินอยู่ ให้อยู่แท็บเดิม ถ้าไม่ใช่ให้ไปแท็บ 1
       switchTab(currentTab === 5 ? 5 : 1);
     }
+
+    // ---------- แท็บ 1: ตารางข้อมูลทั้งหมด (เลือกเรียงได้) ----------
+    let labSortMode = "date";   // "date" = เรียงตามวันที่ | "lab" = เรียงตามการทดลองที่
+
+    function setLabSort(mode) {
+      labSortMode = mode;
+      updateSortUI();
+      if (currentStudent) renderAllLabs();
+    }
+
+    function updateSortUI() {
+      const base = "px-3 py-1.5 rounded-lg text-sm font-medium border transition";
+      const on   = " bg-indigo-600 text-white border-indigo-600 shadow-sm";
+      const off  = " bg-white text-slate-600 border-slate-300 hover:bg-slate-50";
+
+      document.getElementById("sortBtnDate").className = base + (labSortMode === "date" ? on : off);
+      document.getElementById("sortBtnLab").className  = base + (labSortMode === "lab"  ? on : off);
+
+      document.getElementById("sortIconDate").textContent = labSortMode === "date" ? "▲" : "";
+      document.getElementById("sortIconLab").textContent  = labSortMode === "lab"  ? "▲" : "";
+    }
+
+    function renderAllLabs() {
+      const tbody = document.getElementById("allLabsTable");
+      tbody.innerHTML = "";
+
+      if (!currentStudent || currentStudent.labs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
+        return;
+      }
+
+      const timeKey = t => (String(t).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
+
+      const sortedLabs = [...currentStudent.labs].sort((a, b) => {
+        const byDate = () => {
+          const da = toStandardYMD(a.date), db_ = toStandardYMD(b.date);
+          if (da !== db_) return da < db_ ? -1 : 1;
+          const ta = timeKey(a.time), tb = timeKey(b.time);
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return 0;
+        };
+        const byLab = () => Number(a.labNo) - Number(b.labNo);
+
+        if (labSortMode === "lab") return byLab() || byDate();
+        return byDate() || byLab();
+      });
+
+      const todayYMD = toStandardYMD(new Date());
+
+      sortedLabs.forEach(lab => {
+        const isToday = toStandardYMD(lab.date) === todayYMD;
+        tbody.innerHTML += `
+          <tr class="${isToday ? "bg-emerald-50" : "hover:bg-slate-50"} transition">
+            <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
+              ${formatDateDisplay(lab.date)}
+              ${isToday ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">วันนี้</span>' : ""}
+            </td>
+            <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatTimeDisplay(lab.time)}</td>
+            <td class="py-3 px-4 font-semibold text-indigo-600 whitespace-nowrap">Lab ${lab.labNo}</td>
+            <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
+            <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
+          </tr>`;
+      });
+    }
+
 
     // ---------- แท็บ 2: เรียนวันนี้ ----------
     function renderToday() {
@@ -667,6 +694,7 @@
     });
 
     // เปิดหน้าเว็บครั้งแรก: แสดงแท็บ 1 (จะขึ้นข้อความให้กรอกรหัสก่อน)
+    updateSortUI();
     switchTab(1);
   </script>
 </body>
