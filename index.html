@@ -133,18 +133,33 @@
 
       <!-- แท็บ 1 -->
       <div id="tabContent1" class="tab-pane hidden">
+
+        <!-- ★ เพิ่ม: ปุ่มเลือกการเรียง -->
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-sm text-slate-500">เรียงตาม:</span>
+          <button id="sortBtnDate" onclick="setLabSort('date')">📅 วันที่เรียน</button>
+          <button id="sortBtnLab" onclick="setLabSort('lab')">🔬 การทดลองที่</button>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
               <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                  <tr>
-                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">วันเรียน (วัน/เดือน/ปี)</th>
-                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">เวลาเรียน</th>
-                     <th class="py-3.5 px-4 font-semibold whitespace-nowrap">การทดลองที่</th>
-                     <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
-                     <th class="py-3.5 px-4 text-center font-semibold whitespace-nowrap">โต๊ะที่นั่ง</th>
+                <tr>
+                  <!-- ★ แก้: หัวคอลัมน์กดได้ -->
+                  <th onclick="setLabSort('date')" title="กดเพื่อเรียงตามวันที่"
+                      class="py-3.5 px-4 font-semibold whitespace-nowrap cursor-pointer select-none hover:text-indigo-600">
+                    วันเรียน (วัน/เดือน/ปี) <span id="sortIconDate" class="text-indigo-600"></span>
+                  </th>
+                  <th class="py-3.5 px-4 font-semibold whitespace-nowrap">เวลาเรียน</th>
+                  <th onclick="setLabSort('lab')" title="กดเพื่อเรียงตามการทดลอง"
+                      class="py-3.5 px-4 font-semibold whitespace-nowrap cursor-pointer select-none hover:text-indigo-600">
+                    การทดลองที่ <span id="sortIconLab" class="text-indigo-600"></span>
+                  </th>
+                  <th class="py-3.5 px-4 font-semibold">ชื่อการทดลอง</th>
+                  <th class="py-3.5 px-4 text-center font-semibold whitespace-nowrap">โต๊ะที่นั่ง</th>
                 </tr>
-            </thead>
+              </thead>
               <tbody id="allLabsTable" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
@@ -285,8 +300,8 @@
       </a>
     </div>
   </footer>
- 
-    <script>
+
+  <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBHyx9HjuW1ws_8ZnDFetCAqbdd0LHAMDQypdJKx9BXRN4vP6bt25q575jydGrqxXv/exec";
 
     let db = null;
@@ -363,7 +378,7 @@
         showError("ไม่พบข้อมูลรหัสนักศึกษา " + input + " ในระบบ");
         currentStudent = null;
         document.getElementById("studentInfoCard").classList.add("hidden");
-        switchTab(currentTab);   // รีเฟรชแท็บปัจจุบัน (แท็บ 1-4 จะขึ้นให้กรอกรหัส)
+        switchTab(currentTab);
         return;
       }
 
@@ -385,51 +400,81 @@
       document.getElementById("dispGroup").textContent = (currentStudent.group || "-") + " / " + (currentStudent.regularDate || "-");
       document.getElementById("dispSeat").textContent = currentStudent.desk || "-";
 
-            // แท็บ 1: เรียงตามวันที่ (เก่า → ใหม่) ถ้าวันเดียวกันเรียงตามเวลา
-      const allLabsTbody = document.getElementById("allLabsTable");
-      allLabsTbody.innerHTML = "";
-
-      if (currentStudent.labs.length === 0) {
-        allLabsTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
-      } else {
-        // ใช้ [...] คัดลอกอาร์เรย์ก่อน เพื่อไม่ให้กระทบลำดับของแท็บ 3 (สถิติ)
-        const sortedLabs = [...currentStudent.labs].sort((a, b) => {
-          const da = toStandardYMD(a.date);
-          const db_ = toStandardYMD(b.date);
-          if (da !== db_) return da < db_ ? -1 : 1;
-          const ta = (String(a.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
-          const tb = (String(b.time).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
-          if (ta !== tb) return ta < tb ? -1 : 1;
-          return a.labNo - b.labNo;
-        });
-
-        const todayYMD = toStandardYMD(new Date());
-
-        sortedLabs.forEach(lab => {
-          const isToday = toStandardYMD(lab.date) === todayYMD;
-          allLabsTbody.innerHTML += `
-            <tr class="${isToday ? "bg-emerald-50" : "hover:bg-slate-50"} transition">
-              <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
-                ${formatDateDisplay(lab.date)}
-                ${isToday ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">วันนี้</span>' : ""}
-              </td>
-              <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatTimeDisplay(lab.time)}</td>
-              <td class="py-3 px-4 font-semibold text-indigo-600 whitespace-nowrap">Lab ${lab.labNo}</td>
-              <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
-              <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
-            </tr>`;
-        });
-      }
-
+      renderAllLabs();      // ★ แท็บ 1 (เลือกเรียงได้)
       renderToday();
       renderAttendance();
       renderQrCode();
 
-      // แสดงกล่องข้อมูลนักศึกษา
       document.getElementById("studentInfoCard").classList.remove("hidden");
-
-      // ถ้าดูปฏิทินอยู่ ให้อยู่แท็บเดิม ถ้าไม่ใช่ให้ไปแท็บ 1
       switchTab(currentTab === 5 ? 5 : 1);
+    }
+// ---------- ★ แท็บ 1: ตารางข้อมูลทั้งหมด (เลือกเรียงได้) ----------
+    let labSortMode = "date";   // "date" = เรียงตามวันที่ | "lab" = เรียงตามการทดลองที่
+
+    function setLabSort(mode) {
+      labSortMode = mode;
+      updateSortUI();
+      if (currentStudent) renderAllLabs();
+    }
+
+    function updateSortUI() {
+      const base = "px-3 py-1.5 rounded-lg text-sm font-medium border transition";
+      const on   = " bg-indigo-600 text-white border-indigo-600 shadow-sm";
+      const off  = " bg-white text-slate-600 border-slate-300 hover:bg-slate-50";
+
+      const btnDate = document.getElementById("sortBtnDate");
+      const btnLab  = document.getElementById("sortBtnLab");
+      const icoDate = document.getElementById("sortIconDate");
+      const icoLab  = document.getElementById("sortIconLab");
+
+      if (btnDate) btnDate.className = base + (labSortMode === "date" ? on : off);
+      if (btnLab)  btnLab.className  = base + (labSortMode === "lab"  ? on : off);
+      if (icoDate) icoDate.textContent = labSortMode === "date" ? "▲" : "";
+      if (icoLab)  icoLab.textContent  = labSortMode === "lab"  ? "▲" : "";
+    }
+
+    function renderAllLabs() {
+      const tbody = document.getElementById("allLabsTable");
+      tbody.innerHTML = "";
+
+      if (!currentStudent || currentStudent.labs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">ยังไม่มีกำหนดการทดลองที่เปิดระบบ</td></tr>`;
+        return;
+      }
+
+      const timeKey = t => (String(t).match(/\d{1,2}:\d{2}/) || [""])[0].padStart(5, "0");
+
+      // คัดลอกอาร์เรย์ก่อนเรียง เพื่อไม่กระทบลำดับของแท็บ 3 (สถิติ)
+      const sortedLabs = [...currentStudent.labs].sort((a, b) => {
+        const byDate = () => {
+          const da = toStandardYMD(a.date), db_ = toStandardYMD(b.date);
+          if (da !== db_) return da < db_ ? -1 : 1;
+          const ta = timeKey(a.time), tb = timeKey(b.time);
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return 0;
+        };
+        const byLab = () => Number(a.labNo) - Number(b.labNo);
+
+        if (labSortMode === "lab") return byLab() || byDate();
+        return byDate() || byLab();
+      });
+
+      const todayYMD = toStandardYMD(new Date());
+
+      sortedLabs.forEach(lab => {
+        const isToday = toStandardYMD(lab.date) === todayYMD;
+        tbody.innerHTML += `
+          <tr class="${isToday ? "bg-emerald-50" : "hover:bg-slate-50"} transition">
+            <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
+              ${formatDateDisplay(lab.date)}
+              ${isToday ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">วันนี้</span>' : ""}
+            </td>
+            <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatTimeDisplay(lab.time)}</td>
+            <td class="py-3 px-4 font-semibold text-indigo-600 whitespace-nowrap">Lab ${lab.labNo}</td>
+            <td class="py-3 px-4 font-medium text-slate-800">${lab.labName}</td>
+            <td class="py-3 px-4 text-center font-bold text-slate-700">${currentStudent.desk || "-"}</td>
+          </tr>`;
+      });
     }
 
     // ---------- แท็บ 2: เรียนวันนี้ ----------
@@ -467,7 +512,8 @@
         `;
       }
     }
-       // ---------- แท็บ 3: สถิติการเข้าเรียน ----------
+
+    // ---------- แท็บ 3: สถิติการเข้าเรียน ----------
     function renderAttendance() {
       const MAX_ABSENT = 2;
 
@@ -568,7 +614,6 @@
     function switchTab(tabIndex) {
       currentTab = tabIndex;
 
-      // ซ่อนทุกแท็บ + ข้อความ "กรอกรหัสก่อน" + รีเซ็ตสีปุ่ม
       document.getElementById("needSearchMsg").classList.add("hidden");
       for (let i = 1; i <= 5; i++) {
         document.getElementById(`tabContent${i}`).classList.add("hidden");
@@ -577,12 +622,10 @@
         btn.classList.add("border-transparent", "text-slate-500");
       }
 
-      // ไฮไลต์ปุ่มที่เลือก
       const activeBtn = document.getElementById(`tabBtn${tabIndex}`);
       activeBtn.classList.add("border-indigo-600", "text-indigo-600", "font-semibold");
       activeBtn.classList.remove("border-transparent", "text-slate-500");
 
-      // แท็บ 1-4 ต้องมีข้อมูลนักศึกษา / แท็บ 5 ดูได้เลย
       if (tabIndex <= 4 && !currentStudent) {
         document.getElementById("needSearchMsg").classList.remove("hidden");
         return;
@@ -590,11 +633,11 @@
 
       document.getElementById(`tabContent${tabIndex}`).classList.remove("hidden");
 
-      if (tabIndex === 5) loadCalendarPdf();   // วาด PDF หลังแท็บแสดงแล้ว เพื่อวัดความกว้างได้
+      if (tabIndex === 5) loadCalendarPdf();
     }
 
     // ================= ปฏิทินการเรียน (PDF) =================
-    const CALENDAR_PDF_URL = "lab-calendar.pdf";   // ← แก้ชื่อไฟล์ตรงนี้ถ้าต่างจากนี้
+    const CALENDAR_PDF_URL = "lab-calendar.pdf";
     let pdfDoc = null;
     let pdfLastWidth = 0;
     let pdfRenderToken = 0;
@@ -651,11 +694,10 @@
         console.error("PDF error:", e);
         loading.classList.add("hidden");
         errBox.classList.remove("hidden");
-        pdfLastWidth = 0;   // ให้ลองใหม่ได้เมื่อกลับมาเปิดแท็บอีกครั้ง
+        pdfLastWidth = 0;
       }
     }
 
-    // หมุนจอ / ปรับขนาดหน้าต่าง → วาดใหม่ให้พอดี
     let pdfResizeTimer;
     window.addEventListener("resize", () => {
       clearTimeout(pdfResizeTimer);
@@ -666,8 +708,9 @@
       }, 300);
     });
 
-    // เปิดหน้าเว็บครั้งแรก: แสดงแท็บ 1 (จะขึ้นข้อความให้กรอกรหัสก่อน)
+    // เปิดหน้าเว็บครั้งแรก
+    updateSortUI();   // ★ เพิ่ม
     switchTab(1);
   </script>
 </body>
-</html> 
+</html>
